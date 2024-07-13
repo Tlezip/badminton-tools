@@ -1,0 +1,16 @@
+.round-container {
+    padding: 16px 32px;
+    border-radius: 16px;
+    border: 1px dashed white;
+    margin-bottom: 16px;
+    width: 500px;
+    max-width: 90%;
+}
+
+.generate-play-container {
+    display: flex;
+}
+
+.generate-round-button {
+    margin-right: 8px;
+}

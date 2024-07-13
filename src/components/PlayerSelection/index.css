@@ -1,0 +1,22 @@
+.checkbox-container {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.player-selection {
+    display: flex;
+    max-width: 250px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.player {
+    white-space: nowrap;
+    margin-bottom: 8px;
+}
+
+.palyer-container:nth-child(odd) {
+    margin-right: 8px;
+}
+

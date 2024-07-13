@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'
-import { orderBy, sampleSize, shuffle } from 'lodash';
-import logo from '../../logo.svg';
+import { orderBy, sampleSize, shuffle, cloneDeep } from 'lodash';
+import { Button } from 'react-bootstrap'
+import bas from '../../bas.png';
 import '../../App.css';
+import PlayerSelection from '../../components/PlayerSelection';
+
+import './index.css'
 
 interface Player {
   name: string
@@ -34,14 +38,7 @@ const Board = () => {
     if (players.length === 0 || !courtCount) window.location.href = '/'
   }, [players, courtCount])
   const [rounds, setRounds] = useState<Round[]>([])
-  const [restPlayer, setRestPlayer] = useState('')
-  // const getCourtCount = (playerCount: number) => {
-  //   if (playerCount < 7) return 1
-  //   if (playerCount < 10) return 2
-  //   if (playerCount < 15) return 3
-  //   return Math.ceil(playerCount / 4)
-  // }
-  // const courtCount = getCourtCount(players.length)
+  const [restPlayer, setRestPlayer] = useState<string[]>([])
   const maxPlayers = courtCount * MAX_PLAYER_PER_COURT
   const restPlayers = rounds.reduce((acc: string[], round) => [...acc, ...round.rest], [])
   const restCount = players.reduce((acc: { [key: string]: string[] }, player) => {
@@ -52,16 +49,17 @@ const Board = () => {
   const pairMaps = rounds.reduce((acc: any, round) => {
     round.courts.forEach(court => {
       if (court.blue.length === 2) {
-        acc[court.blue[0]].push(court.blue[1])
-        acc[court.blue[1]].push(court.blue[2])
+        acc[court.blue[0]][court.blue[1]] += 1
+        acc[court.blue[1]][court.blue[0]] += 1
       }
       if (court.red.length === 2) {
-        acc[court.red[0]].push(court.red[1])
-        acc[court.red[1]].push(court.red[2])
+        acc[court.red[0]][court.red[1]] += 1
+        acc[court.red[1]][court.red[0]] += 1
       }
     })
     return acc
-  }, players.reduce((acc, player) => ({ ...acc, [player.name]: [] }), {}));
+  }, players.reduce((acc, player) => ({ ...acc, [player.name]: { ...players.filter(p2 => p2.name !== player.name).reduce((acc2, player2) => ({ ...acc2, [player2.name]: 0 }), {}) } }), {}));
+
   const getPlayerToPlay = (players: Player[], playersDecidedToRest: string[]) => {
     const playersWantToPlay = players.filter(player => !playersDecidedToRest.includes(player.name))
     const isPlayerExceed = playersWantToPlay.length > maxPlayers
@@ -69,7 +67,8 @@ const Board = () => {
       const exceedNumber = playersWantToPlay.length - maxPlayers
       const playersForcedToRest = orderBy(Object.keys(restCount)).reduce((acc: string[], key: string) => {
         const playerNames = restCount[key]
-        if (acc.length < exceedNumber) return [...acc, ...sampleSize(playerNames, exceedNumber - acc.length)]
+        const playersToRandomForceRest = playerNames.filter(name => !playersDecidedToRest.includes(name))
+        if (acc.length < exceedNumber) return [...acc, ...sampleSize(playersToRandomForceRest, exceedNumber - acc.length)]
         return acc
       }, [])
       const playersToPlay = playersWantToPlay.filter(player => !playersForcedToRest.includes(player.name))
@@ -81,7 +80,12 @@ const Board = () => {
   const _getPairPlayers = (players: Player[]): any[] => {
     if (players.length > 0) {
       const firstPlayer = players[0]
-      const maybePaired = players.filter(player => player.name !== firstPlayer.name && !pairMaps[firstPlayer.name].includes(player.name))
+      const maybePaired = players.filter(player => {
+        const matchesCount: number[] = players.filter(_player => _player.name !== firstPlayer.name).map(_player => pairMaps[firstPlayer.name][_player.name])
+        const leastMatchCount = matchesCount.length > 0 ? Math.min(...matchesCount) : 0
+        const playerWithLeastCount = players.filter(_player => pairMaps[firstPlayer.name][_player.name] === leastMatchCount).map(_player => _player.name)
+        return playerWithLeastCount.includes(player.name)
+      })
       if (maybePaired.length === 0) return []
 
       const pair = sampleSize(maybePaired, 1)[0]
@@ -95,7 +99,6 @@ const Board = () => {
     let pairs = _getPairPlayers(players)
     let count = 0
     while (pairs.length !== players.length / 2 && count < 500) {
-      console.log('regenerating pair ', count)
       pairs = _getPairPlayers(players)
       count++
     }
@@ -169,39 +172,42 @@ const Board = () => {
         setRounds([])
       }
     }
+    setRestPlayer([])
   }
+  const removeLastRound = () => {
+    setRounds(rounds.slice(0, -1))
+  }
+  const reversedRounds = cloneDeep(rounds).reverse()
 
   return (
     <div className="App">
       <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
+        <img src={bas} className="App-logo" alt="logo" />
         <h2>{`Courts: ${courtCount}`}</h2>
         <h2>{`All ${players.length} Players : ${players.map(player => player.name).join(', ')}`}</h2>
         <h2>{`Alonable Players : ${players.filter(player => player.isAlonable).map(player => player.name).join(', ')}`}</h2>
-        <button onClick={() => generateCourts(players, restPlayer.length > 0 ? restPlayer.split(',') : [])}>Generate Round</button>
-        Player to rest: <input onChange={(e) => setRestPlayer(e.target.value)}></input>
-        {rounds.reverse().map((round, index) => (
-          <div>
+        <div className="generate-play-container">
+          <Button onClick={() => generateCourts(players, restPlayer)} className="generate-round-button">Generate Round</Button>
+          <Button variant="danger" onClick={removeLastRound}>Remove Last Round</Button>
+        </div>
+        Player to rest:
+        <PlayerSelection
+          selectAll={false}
+          players={players.map(player => player.name)}
+          selecting={restPlayer}
+          handleSelectPlayer={(_players) => setRestPlayer(_players)}
+        />
+        {reversedRounds.map((round, index) => (
+          <div key={`round-${index}`} className="round-container">
             <h3>{`Round - ${rounds.length - index}`}</h3>
             <p>Rest: {round.rest.join(',')}</p>
             {round.courts.map((court, courtIndex) => (
-              <div>
+              <div key={`court-${courtIndex}`}>
                 <p>{`Court - ${courtIndex + 1} : ${court.red.join(',')} vs ${court.blue.join(',')}`}</p>
               </div>
             ))}
           </div>
         ))}
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
       </header>
     </div>
   );
