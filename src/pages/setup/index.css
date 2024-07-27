@@ -5,6 +5,11 @@
     align-items: center;
 }
 
+.setup-textarea {
+    min-width: 400px;
+    height: 500px;
+}
+
 .button-container {
     margin-top: 40px;
     display: flex;
