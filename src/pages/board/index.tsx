@@ -5,11 +5,11 @@ import { Button } from 'react-bootstrap'
 import bas from '../../bas.png';
 import '../../App.css';
 import PlayerSelection from '../../components/PlayerSelection';
+import { BasePlayer } from '../../types';
 
 import './index.css'
 
-interface Player {
-  name: string
+interface Player extends BasePlayer {
   isAlonable: boolean
 }
 
@@ -33,6 +33,7 @@ interface LocationState {
 const Board = () => {
   const location = useLocation();
   const { players, court: courtCount } = location.state as LocationState;
+  console.log({ players })
 
   useEffect(() => {
     if (players.length === 0 || !courtCount) window.location.href = '/'
@@ -109,15 +110,44 @@ const Board = () => {
   }
 
   const buildCourtFromPairs = (pairs: any[]) => {
-    const shuffledPairs = shuffle(pairs)
-    const courts = shuffledPairs.reduce((acc, pair, index) => {
-      if (index % 2 === 0) return [...acc, { red: pair }]
-      if (index % 2 === 1) {
-        acc[acc.length - 1].blue = pair
-        return acc
+    console.log({ pairs });
+    const pairWithRank = pairs.map(pair => {
+      const rank = pair.reduce((acc: number, player: string) => {
+        const playerInfo = players.find(p => p.name === player)
+        const playerRank = playerInfo?.rank || 0
+        const playerRankWithGodEnhance = playerInfo?.isGod && pair.length === 1 ? playerRank * 2 : playerRank
+        return acc + playerRankWithGodEnhance
+      }, 0)
+      return {
+        pairs: pair,
+        rank
       }
-    }, [])
-    return courts
+    })
+    let orderedPairByRank = orderBy(pairWithRank, ['rank'], ['asc'])
+    let courts2: any = []
+    while (orderedPairByRank.length > 0) {
+      if (orderedPairByRank.length % 2 === 0) {
+        courts2.push({ red: orderedPairByRank[0].pairs })
+        orderedPairByRank.shift()
+      } else {
+        const lowestPoint = orderedPairByRank[0].rank
+        const lowestPairs = orderedPairByRank.filter(pair => pair.rank === lowestPoint)
+        const shuffledPairs = shuffle(lowestPairs)
+        const pickedPair = shuffledPairs[0].pairs
+        courts2[courts2.length - 1].blue = pickedPair
+        orderedPairByRank = orderedPairByRank.filter(pair => !(pair.pairs[0] === pickedPair[0] && pair.pairs[1] === pickedPair[1]))
+      }
+    }
+    return courts2
+    // const shuffledPairs = shuffle(pairs)
+    // const courts = shuffledPairs.reduce((acc, pair, index) => {
+    //   if (index % 2 === 0) return [...acc, { red: pair }]
+    //   if (index % 2 === 1) {
+    //     acc[acc.length - 1].blue = pair
+    //     return acc
+    //   }
+    // }, [])
+    // return courts
   }
 
   const generateCourts = (players: Player[], rest: string[]) => {
@@ -155,14 +185,7 @@ const Board = () => {
             alonePlayers = sampleSize(playersToPlay, 1)
           }
           const pairs = getPairPlayers(playersToPlay.filter(player => !alonePlayers.find(alonePlayer => alonePlayer.name === player.name)))
-          const [firstPair, ...restPairs] = pairs
-          const courts = [
-            {
-              red: [alonePlayers[0].name],
-              blue: [firstPair[0], firstPair[1]]
-            },
-            ...buildCourtFromPairs(restPairs)
-          ]
+          const courts = buildCourtFromPairs([[alonePlayers[0].name], ...pairs])
           setRounds((prevRounds) => [...prevRounds, { courts: courts, rest: [...rest, ...playersForcedToRest] }])
         }
       }

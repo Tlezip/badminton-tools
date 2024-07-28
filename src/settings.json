@@ -1,3 +1,85 @@
 {
-    "players": ["Champ", "Micky", "Tle", "Pao", "Korn", "Mameaw", "Opal", "Fah", "Aek", "Best", "Duety", "Fon", "Gem", "Gla", "Mook", "Seen", "Tom", "Yok", "Max", "Biley", "Palm", "Job", "Big", "เพื่อนตี้"]
+    "players": ["Champ", "Micky", "Tle", "Pao", "Korn", "Mameaw", "Opal", "Fah", "Aek", "Best", "Duety", "Fon", "Gem", "Gla", "Mook", "Seen", "Tom", "Yok", "Max", "Biley", "Palm", "Job", "Big", "เพื่อนตี้"],
+    "playersConfig": [
+        {
+            "name": "แชมป์",
+            "rank": 5,
+            "isGod": true
+        },
+        {
+            "name": "เบส",
+            "rank": 5,
+            "isGod": true
+        },
+        {
+            "name": "เจ็ม",
+            "rank": 5,
+            "isGod": true
+        },
+        {
+            "name": "จ๊อบ",
+            "rank": 5,
+            "isGod": true
+        },
+        {
+            "name": "กล้า",
+            "rank": 4
+        },
+        {
+            "name": "กร",
+            "rank": 4
+        },
+        {
+            "name": "มุก",
+            "rank": 4
+        },
+        {
+            "name": "เปา",
+            "rank": 4
+        },
+        {
+            "name": "ตี้",
+            "rank": 3
+        },
+        {
+            "name": "มิกกี้",
+            "rank": 3
+        },
+        {
+            "name": "โอปอ",
+            "rank": 3
+        },
+        {
+            "name": "เติ้ล",
+            "rank": 3
+        },
+        {
+            "name": "หยก",
+            "rank": 3
+        },
+        {
+            "name": "Mac",
+            "rank": 3
+        },
+        {
+            "name": "บล",
+            "rank": 3
+        },
+        {
+            "name": "มะเหมี่ยว",
+            "rank": 2
+        },
+        {
+            "name": "ฟ้า",
+            "rank": 2
+        },
+        {
+            "name": "ซีน",
+            "rank": 1
+        },
+        {
+            "name": "ปาล์ม",
+            "rank": 1
+        }
+    ]
 }

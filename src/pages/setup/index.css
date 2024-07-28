@@ -10,6 +10,16 @@
     height: 500px;
 }
 
+.player-input-container {
+    display: flex;
+}
+
+.player-input-describe {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
 .button-container {
     margin-top: 40px;
     display: flex;
@@ -35,4 +45,47 @@
 
 .courts-btn:nth-child(odd) {
     margin-right: 8px;
+}
+
+.player-describe-container {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    margin-left: 12px;
+}
+
+.player-describe-name {
+    margin-right: 4px;
+}
+
+.icon-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1px solid green;
+}
+
+.icon-close:after {
+    display: inline-block;
+    content: "\00d7"; /* This will render the 'X' */
+    color: red;
+}
+
+.arrow-container {
+    display: flex;
+    align-items: center;
+    margin: 0px 16px;
+}
+
+.arrow {
+    border: solid grey;
+    border-width: 0 3px 3px 0;
+    display: inline-block;
+    padding: 3px;
+    height: 0;
+}
+
+.right {
+    transform: rotate(-45deg);
+    -webkit-transform: rotate(-45deg);
 }
