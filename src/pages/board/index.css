@@ -14,3 +14,9 @@
 .generate-round-button {
     margin-right: 8px;
 }
+
+.court-selection-container {
+    position: absolute;
+    right: 8px;
+    top: 4px;
+}

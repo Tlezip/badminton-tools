@@ -5,6 +5,7 @@ import { Button } from 'react-bootstrap'
 import bas from '../../bas.png';
 import '../../App.css';
 import PlayerSelection from '../../components/PlayerSelection';
+import CourtSelection from '../../components/CourtSelection';
 import { BasePlayer } from '../../types';
 
 import './index.css'
@@ -32,7 +33,8 @@ interface LocationState {
 
 const Board = () => {
   const location = useLocation();
-  const { players, court: courtCount } = location.state as LocationState;
+  const { players, court: _courtCount } = location.state as LocationState;
+  const [courtCount, setCoutCount] = useState(_courtCount);
   console.log({ players })
 
   useEffect(() => {
@@ -206,6 +208,9 @@ const Board = () => {
     <div className="App">
       <header className="App-header">
         <img src={bas} className="App-logo" alt="logo" />
+        <div className="court-selection-container">
+          <CourtSelection court={courtCount} handleChangeCourt={setCoutCount} />
+        </div>
         <h2>{`Courts: ${courtCount}`}</h2>
         <h2>{`All ${players.length} Players : ${players.map(player => player.name).join(', ')}`}</h2>
         <h2>{`Alonable Players : ${players.filter(player => player.isAlonable).map(player => player.name).join(', ')}`}</h2>

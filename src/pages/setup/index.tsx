@@ -19,7 +19,7 @@ const Setup = () => {
             const playerName = playerText.replace(playerRegex, '').replace(rankRegex, '').trim()
             const injectedRank = Number(playerText.match(rankRegex)?.[1])
             const playerConfig = settings.playersConfig.find(p => p.name === playerName)
-            const rank = playerConfig?.rank || injectedRank
+            const rank = isNaN(injectedRank) ? playerConfig?.rank : injectedRank 
             return {
                 name: playerName,
                 rank,
@@ -33,12 +33,11 @@ const Setup = () => {
     const players = getPlayersFromText(playersInput)
     const defaultRank = 3;
     const playersWithDefaultRank = players.map(player => ({ ...player, rank: player.rank || defaultRank }))
-    console.log({ players })
 
     return (
         <div className="setup">
             <h2>Input player to play</h2>
-            <Form>
+            <Form className="form-container">
                 <div className="player-input-container">
                     <Form.Control as="textarea" onChange={e => setPlayersInput(e.target.value)} className="setup-textarea"/>
                     <div className="arrow-container">
