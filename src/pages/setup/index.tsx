@@ -13,19 +13,22 @@ const Setup = () => {
     const [court, setCourt] = useState<number>(0)
 
     const getPlayersFromText = (text: string) => {
-        const playerRegex = /^\d+./
+        const playerRegex = /^\d+\.( ?)([^ ]+)/
         const rankRegex = /\((\d+)\)$/
-        const players = playersInput.split('\n').filter(line => line.match(playerRegex)).map(playerText => {
-            const playerName = playerText.replace(playerRegex, '').replace(rankRegex, '').trim()
-            const injectedRank = Number(playerText.match(rankRegex)?.[1])
-            const playerConfig = settings.playersConfig.find(p => p.name === playerName)
-            const rank = isNaN(injectedRank) ? playerConfig?.rank : injectedRank 
-            return {
-                name: playerName,
-                rank,
-                isGod: !!playerConfig?.isGod,
-            }
-        })
+        const players = playersInput.split('\n')
+            .filter(line => line.match(playerRegex))
+            .map(playerText => {
+                // const playerName = playerText.replace(playerRegex, '').replace(rankRegex, '').trim()
+                const playerName = playerText.match(playerRegex)?.[2].replace(rankRegex, '').trim()
+                const injectedRank = Number(playerText.match(rankRegex)?.[1])
+                const playerConfig = settings.playersConfig.find(p => p.name === playerName)
+                const rank = isNaN(injectedRank) ? playerConfig?.rank : injectedRank 
+                return {
+                    name: playerName,
+                    rank,
+                    isGod: !!playerConfig?.isGod,
+                }
+            })
         return players
     }
 

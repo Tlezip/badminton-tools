@@ -1,0 +1,28 @@
+.players-container {
+    display: flex;
+    flex-direction: column;
+    margin: 0 64px;
+}
+
+.player-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid black;
+}
+
+.player-rank-container {
+    display: flex;
+    margin-left: 4px;
+}
+
+.player-rank-text {
+    display: flex;
+    align-items: center;
+    margin: 0 4px;
+}
+
+.bas-container {
+    display: flex;
+}

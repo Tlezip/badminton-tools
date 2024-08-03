@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'
 import { orderBy, sampleSize, shuffle, cloneDeep } from 'lodash';
 import { Button } from 'react-bootstrap'
-import bas from '../../bas.png';
 import '../../App.css';
 import PlayerSelection from '../../components/PlayerSelection';
 import CourtSelection from '../../components/CourtSelection';
+import ScoreSelection from '../../components/ScoreSelection';
 import { BasePlayer } from '../../types';
 
 import './index.css'
@@ -33,13 +33,14 @@ interface LocationState {
 
 const Board = () => {
   const location = useLocation();
-  const { players, court: _courtCount } = location.state as LocationState;
+  const { players: _players, court: _courtCount } = location.state as LocationState;
   const [courtCount, setCoutCount] = useState(_courtCount);
+  const [players, setPlayers] = useState(_players);
   console.log({ players })
 
   useEffect(() => {
-    if (players.length === 0 || !courtCount) window.location.href = '/'
-  }, [players, courtCount])
+    if (_players.length === 0 || !courtCount) window.location.href = '/'
+  }, [_players, courtCount])
   const [rounds, setRounds] = useState<Round[]>([])
   const [restPlayer, setRestPlayer] = useState<string[]>([])
   const maxPlayers = courtCount * MAX_PLAYER_PER_COURT
@@ -152,6 +153,16 @@ const Board = () => {
     // return courts
   }
 
+  const handleChangeScore = (playerName: string, newScore: number) => {
+    const newPlayers = players.reduce<Player[]>((acc, player) => {
+      if (player.name === playerName) {
+        return [...acc, { ...player, rank: newScore }]
+      }
+      return [...acc, player]
+    }, [])
+    setPlayers(newPlayers)
+  }
+
   const generateCourts = (players: Player[], rest: string[]) => {
     const { playersToPlay, playersForcedToRest = [] } = getPlayerToPlay(players, rest)
     
@@ -207,7 +218,7 @@ const Board = () => {
   return (
     <div className="App">
       <header className="App-header">
-        <img src={bas} className="App-logo" alt="logo" />
+        <ScoreSelection players={players} handleChangeScore={handleChangeScore} />
         <div className="court-selection-container">
           <CourtSelection court={courtCount} handleChangeCourt={setCoutCount} />
         </div>
