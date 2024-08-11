@@ -31,6 +31,12 @@ interface LocationState {
   court: number
 }
 
+interface PairMap {
+  [name: string]: {
+    [pairName: string]: number
+  }
+}
+
 const Board = () => {
   const location = useLocation();
   const { players: _players, court: _courtCount } = location.state as LocationState;
@@ -50,7 +56,7 @@ const Board = () => {
     const playerRest = `${restPlayers.filter(restPlayer => restPlayer === playerName).length}`
     return { ...acc, [playerRest]: [...(acc[playerRest] || []), playerName] }
   }, {})
-  const pairMaps = rounds.reduce((acc: any, round) => {
+  const pairMaps = rounds.reduce<PairMap>((acc, round) => {
     round.courts.forEach(court => {
       if (court.blue.length === 2) {
         acc[court.blue[0]][court.blue[1]] += 1
@@ -99,21 +105,30 @@ const Board = () => {
     return []
   }
 
+  const checkIfPairRepeatly = (pairs: string[][]) => {
+    const vallidPairs = pairs.reduce((acc, pair) => {
+      const firstPlayerOfPair = pair[0]
+      const secondPlayerOfPair = pair[1]
+      const leastCount = Math.min(...Object.values(pairMaps[firstPlayerOfPair]))
+      const validPair = pairMaps[firstPlayerOfPair][secondPlayerOfPair] === leastCount
+      if (!validPair) console.log('repeated pair', { pair })
+      return acc && validPair
+    }, true)
+    return !vallidPairs;
+  }
+
   const getPairPlayers = (players: Player[]): any[] => {
     let pairs = _getPairPlayers(players)
     let count = 0
-    while (pairs.length !== players.length / 2 && count < 500) {
+    while (checkIfPairRepeatly(pairs) && count < 50) {
+      console.log('pair is repeated, regenerating... ', count)
       pairs = _getPairPlayers(players)
       count++
-    }
-    if (count === 500) {
-      throw new Error('Cannot find unique pair')
     }
     return pairs
   }
 
   const buildCourtFromPairs = (pairs: any[]) => {
-    console.log({ pairs });
     const pairWithRank = pairs.map(pair => {
       const rank = pair.reduce((acc: number, player: string) => {
         const playerInfo = players.find(p => p.name === player)
@@ -142,15 +157,6 @@ const Board = () => {
       }
     }
     return courts2
-    // const shuffledPairs = shuffle(pairs)
-    // const courts = shuffledPairs.reduce((acc, pair, index) => {
-    //   if (index % 2 === 0) return [...acc, { red: pair }]
-    //   if (index % 2 === 1) {
-    //     acc[acc.length - 1].blue = pair
-    //     return acc
-    //   }
-    // }, [])
-    // return courts
   }
 
   const handleChangeScore = (playerName: string, newScore: number) => {

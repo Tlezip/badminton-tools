@@ -13,7 +13,7 @@ const Setup = () => {
     const [court, setCourt] = useState<number>(0)
 
     const getPlayersFromText = (text: string) => {
-        const playerRegex = /^\d+\.( ?)([^ ]+)/
+        const playerRegex = /^\d+\.( ?)+(.*)/
         const rankRegex = /\((\d+)\)$/
         const players = playersInput.split('\n')
             .filter(line => line.match(playerRegex))
