@@ -1,16 +1,16 @@
 {
   "files": {
-    "main.css": "/badminton-tools/static/css/main.8266f61a.css",
-    "main.js": "/badminton-tools/static/js/main.aba45445.js",
+    "main.css": "/badminton-tools/static/css/main.67d6707e.css",
+    "main.js": "/badminton-tools/static/js/main.6dde3e23.js",
     "static/js/453.72958e8e.chunk.js": "/badminton-tools/static/js/453.72958e8e.chunk.js",
     "static/media/bas.png": "/badminton-tools/static/media/bas.29a14354e7b906b16047.png",
     "index.html": "/badminton-tools/index.html",
-    "main.8266f61a.css.map": "/badminton-tools/static/css/main.8266f61a.css.map",
-    "main.aba45445.js.map": "/badminton-tools/static/js/main.aba45445.js.map",
+    "main.67d6707e.css.map": "/badminton-tools/static/css/main.67d6707e.css.map",
+    "main.6dde3e23.js.map": "/badminton-tools/static/js/main.6dde3e23.js.map",
     "453.72958e8e.chunk.js.map": "/badminton-tools/static/js/453.72958e8e.chunk.js.map"
   },
   "entrypoints": [
-    "static/css/main.8266f61a.css",
-    "static/js/main.aba45445.js"
+    "static/css/main.67d6707e.css",
+    "static/js/main.6dde3e23.js"
   ]
 }
