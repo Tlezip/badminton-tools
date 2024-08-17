@@ -16,7 +16,7 @@ const Setup = () => {
         const playerRegex = /^\d+\.( ?)+(.*)/
         const rankRegex = /\((\d+)\)$/
         const players = playersInput.split('\n')
-            .filter(line => line.match(playerRegex))
+            .filter(line => line.match(playerRegex)?.[2])
             .map(playerText => {
                 // const playerName = playerText.replace(playerRegex, '').replace(rankRegex, '').trim()
                 const playerName = playerText.match(playerRegex)?.[2].replace(rankRegex, '').trim()

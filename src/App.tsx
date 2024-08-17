@@ -1,44 +1,32 @@
-import React, { useState } from 'react';
+import { useEffect } from 'react';
+import { ErrorBoundary } from 'react-error-boundary';
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-// import { orderBy, sampleSize, cloneDeep, shuffle } from 'lodash';
-// import logo from './logo.svg';
 import Setup from './pages/setup'
 import Alonable from './pages/alonable'
 import Board from './pages/board'
+import { sendLog } from './services/log';
 import './App.css';
 
-interface Player {
-  name: string
-  isAlonable: boolean
-}
-
-interface Court {
-  red: string[]
-  blue: string[]
-}
-
-interface Round {
-  courts: Court[]
-  rest: string[]
-}
-
-const MAX_PLAYER_PER_COURT = 4
-
-enum Pages {
-  PlayerSetup,
-  AlonableSetup,
-  Board
-}
-
 function App() {
+  const handleError = (error: Error | ErrorEvent) => {
+    sendLog(error.message, 'error', { error: JSON.stringify(error) })
+  }
+
+  useEffect(() => {
+    window.addEventListener('error', handleError)
+    return () => window.removeEventListener('error', handleError)
+  }, [])
+
   return (
-    <BrowserRouter basename={process.env.PUBLIC_URL}>
-      <Routes>
-        <Route path="/" element={<Setup />} />
-        <Route path="alonable" element={<Alonable />} />
-        <Route path="board" element={<Board />} />
-      </Routes>
-    </BrowserRouter>
+    <ErrorBoundary onError={handleError} FallbackComponent={() => <div>error</div>}>
+      <BrowserRouter basename={process.env.PUBLIC_URL}>
+        <Routes>
+          <Route path="/" element={<Setup />} />
+          <Route path="alonable" element={<Alonable />} />
+          <Route path="board" element={<ErrorBoundary onError={handleError} FallbackComponent={() => <div>error</div>}><Board /></ErrorBoundary>} />
+        </Routes>
+      </BrowserRouter>
+    </ErrorBoundary>
   )
 }
 

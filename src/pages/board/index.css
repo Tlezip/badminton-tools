@@ -3,20 +3,47 @@
     border-radius: 16px;
     border: 1px dashed white;
     margin-bottom: 16px;
-    width: 500px;
+    min-width: 800px;
     max-width: 90%;
 }
 
 .generate-play-container {
     display: flex;
+    margin-bottom: 8px;
 }
 
 .generate-round-button {
     margin-right: 8px;
 }
 
+.mode-button {
+    margin-left: 8px;
+}
+
 .court-selection-container {
     position: absolute;
     right: 8px;
     top: 4px;
+}
+
+.table-box-container {
+    display: flex;
+    border-bottom: 1px solid white;
+    text-align: left;
+}
+
+.table-box-container--odd {
+    background-color: #818589;
+}
+
+.table-box {
+    flex: 1 0 0px;
+}
+
+.table-box--vs {
+    color: red;
+}
+
+.table-box--center {
+    text-align: center;
 }
