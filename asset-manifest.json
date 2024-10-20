@@ -1,16 +1,16 @@
 {
   "files": {
     "main.css": "/badminton-tools/static/css/main.67d6707e.css",
-    "main.js": "/badminton-tools/static/js/main.2f7dc19d.js",
+    "main.js": "/badminton-tools/static/js/main.1536129c.js",
     "static/js/453.72958e8e.chunk.js": "/badminton-tools/static/js/453.72958e8e.chunk.js",
     "static/media/bas.png": "/badminton-tools/static/media/bas.29a14354e7b906b16047.png",
     "index.html": "/badminton-tools/index.html",
     "main.67d6707e.css.map": "/badminton-tools/static/css/main.67d6707e.css.map",
-    "main.2f7dc19d.js.map": "/badminton-tools/static/js/main.2f7dc19d.js.map",
+    "main.1536129c.js.map": "/badminton-tools/static/js/main.1536129c.js.map",
     "453.72958e8e.chunk.js.map": "/badminton-tools/static/js/453.72958e8e.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.67d6707e.css",
-    "static/js/main.2f7dc19d.js"
+    "static/js/main.1536129c.js"
   ]
 }
