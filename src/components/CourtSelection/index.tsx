@@ -49,6 +49,7 @@ const CourtSelection: React.FC<Props> = ({ courtsInfo, handleChangeCourtsInfo })
                                     <Button
                                         className={`courts-btn ${_court === currentCourtCount ? 'btn-primary' : 'btn-secondary'}`}
                                         onClick={() => handleSelectCourt(_court)}
+                                        key={_court}
                                     >
                                         {_court}
                                     </Button>

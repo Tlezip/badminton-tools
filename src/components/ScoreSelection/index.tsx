@@ -74,7 +74,7 @@ const ScoreSelection: React.FC<Props> = ({ players, teams, handleChangeScore, ha
                             players.map(player => {
                                 const currentTeam = teams.find(team => team.pairs.includes(player.name))?.teamId
                                 return (
-                                    <div className="player-container">
+                                    <div className="player-container" key={player.name}>
                                         <div>{player.name}</div>
                                         <div className="player-rank-container">
                                             <Button variant={currentTeam ? 'success' : 'secondary'} size="sm" onClick={() => handleToggleTeam(player.name)} className="team-selection">{currentTeam ? `Team ${currentTeam}` : 'No Team'}</Button>
