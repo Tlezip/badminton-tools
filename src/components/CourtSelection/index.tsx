@@ -1,20 +1,40 @@
 import { useState } from 'react'
-import { Button, Modal } from 'react-bootstrap'
+import { Button, Modal, InputGroup, Form } from 'react-bootstrap'
+import { CourtInfo } from '../../types'
 
 interface Props {
-    court: number
-    handleChangeCourt: (court: number) => void
+    courtsInfo: Array<CourtInfo>
+    handleChangeCourtsInfo: React.Dispatch<React.SetStateAction<Array<CourtInfo>>>
 }
 
-const CourtSelection: React.FC<Props> = ({ court, handleChangeCourt }) => {
+const CourtSelection: React.FC<Props> = ({ courtsInfo, handleChangeCourtsInfo }) => {
     const [show, setShow] = useState(false);
 
     const handleOpen = () => setShow(true);
     const handleClose = () => setShow(false);
+    const currentCourtCount = courtsInfo.length
     const handleSelectCourt = (court: number) => {
-        handleChangeCourt(court)
-        handleClose()
+        const isCourtExceed = currentCourtCount > court
+        if (isCourtExceed) {
+            const newCourts = courtsInfo.slice(0, court)
+            handleChangeCourtsInfo(newCourts)
+        } else {
+            const newCourts = [...Array(court).keys()].map((courtIndex) => courtsInfo[courtIndex] || { name: `${courtIndex + 1}`})
+            handleChangeCourtsInfo(newCourts)
+        }
     }
+
+    const handleCourtNameChange = (courtIndex: number, courtValue: string) => {
+        handleChangeCourtsInfo((prevCourtsInfo: Array<CourtInfo>) => {
+           const newCourtsInfo = [...prevCourtsInfo]
+           newCourtsInfo[courtIndex] = {
+            ...newCourtsInfo[courtIndex],
+            name: courtValue
+           }
+           return newCourtsInfo
+        })
+    }
+
     const courts = [1, 2, 3, 4]
 
     return (
@@ -27,11 +47,21 @@ const CourtSelection: React.FC<Props> = ({ court, handleChangeCourt }) => {
                             {
                                 courts.map(_court => (
                                     <Button
-                                        className={`courts-btn ${_court === court ? 'btn-primary' : 'btn-secondary'}`}
+                                        className={`courts-btn ${_court === currentCourtCount ? 'btn-primary' : 'btn-secondary'}`}
                                         onClick={() => handleSelectCourt(_court)}
                                     >
                                         {_court}
                                     </Button>
+                                ))
+                            }
+                        </div>
+                        <div className="courts-name-container">
+                            {
+                                courtsInfo.map((courtInfo, courtIndex) => (
+                                    <InputGroup className="mb-3" key={courtIndex}>
+                                        <InputGroup.Text id="basic-addon2">{`court ${courtIndex + 1} name`}</InputGroup.Text>
+                                        <Form.Control onChange={(e) => handleCourtNameChange(courtIndex, e.target.value)} value={courtInfo.name} />
+                                    </InputGroup>
                                 ))
                             }
                         </div>

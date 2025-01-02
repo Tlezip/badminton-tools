@@ -64,6 +64,7 @@ const Setup = () => {
                         <Button
                             className={`courts-btn ${_court === court ? 'btn-primary' : 'btn-secondary'}`}
                             onClick={() => setCourt(_court)}
+                            key={_court}
                         >
                             {_court}
                         </Button>

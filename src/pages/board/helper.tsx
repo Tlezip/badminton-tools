@@ -1,18 +1,14 @@
 import { sampleSize, shuffle, orderBy } from 'lodash'
 import { Player, Court, PairMap, Pair, Round } from './type'
+import { Team } from '../../types'
 
-const buildBalanceCourtFromPlayers = (players: Player[]): Court => {
+const buildBalanceCourtFromPlayers = (players: Player[], pairMaps: PairMap): Court => {
     const playerCount = players.length
     if (playerCount === 4) {
-        const ranks = players.map(player => player.rank)
-        const lowestRank = Math.min(...ranks)
-        const highestRank = Math.max(...ranks)
-        const lowestRankPlayer = sampleSize(players.filter(player => player.rank === lowestRank), 1)[0]
-        const highestRankPlayer = sampleSize(players.filter(player => player.rank === highestRank && player.name !== lowestRankPlayer.name), 1)[0]
-        const others = players.filter(player => player.name !== lowestRankPlayer.name && player.name !== highestRankPlayer.name)
+        const pairs = getPairPlayers(players, pairMaps)
         return {
-            red: [lowestRankPlayer.name, highestRankPlayer.name],
-            blue: [others[0].name, others[1].name]
+            red: [pairs[0][0], pairs[0][1]],
+            blue: [pairs[1][0], pairs[1][1]]
         }
     }
     if (playerCount === 3) {
@@ -34,12 +30,11 @@ const buildBalanceCourtFromPlayers = (players: Player[]): Court => {
     }
 }
 
-export const generateBalanceCourts = (players: Player[]) => {
+export const generateBalanceCourts = (players: Player[], pairMaps: PairMap) => {
     const playersL = players.filter(player => player.rank >= 8)
     const playersM = players.filter(player => player.rank >= 6 && player.rank <= 7)
     const playersS = players.filter(player => player.rank < 6)
     const playersGroup = [playersS, playersM, playersL]
-    console.log({ playersS, playersM, playersL })
     const playersEachCourt = playersGroup.reduce<Player[][]>(
         (acc, playerGroup) => {
             const shuffledPlayers = shuffle(playerGroup);
@@ -56,11 +51,9 @@ export const generateBalanceCourts = (players: Player[]) => {
             return acc;
         },
     [])
-    console.log({ playersEachCourt })
     const courts = playersEachCourt.reduce<Court[]>((acc, _playersEachCourt) => {
-        return [...acc, buildBalanceCourtFromPlayers(_playersEachCourt)]
+        return [...acc, buildBalanceCourtFromPlayers(_playersEachCourt, pairMaps)]
     }, []);
-    console.log({ courts })
 
     return courts;
 }
@@ -137,39 +130,49 @@ const buildCourtFromPairs = (players: Player[], pairs: Pair[]): Court[] => {
     return courts
 }
 
-export const generateNormalCourts = (players: Player[], pairMaps: PairMap) => {
+export const generateNormalCourts = (players: Player[], pairMaps: PairMap, teams: Team[]) => {
+    const filteredTeams = teams.filter(team => {
+        const isTeamFull = team.pairs.length === 2
+        const teamAbleToPlay = team.pairs.every((_playerName: string) => players.find(player => player.name === _playerName))
+        return isTeamFull && teamAbleToPlay
+    })
+    const filteredPlayers = players.filter(player => {
+        const hasTeam = filteredTeams.find(team => team.pairs.includes(player.name))
+        return !hasTeam
+    })
     const remainPlayerCount = players.length % 4
+    const pairsFromTeam = filteredTeams.map(team => team.pairs)
     if (remainPlayerCount === 0) {
-        const pairs = getPairPlayers(players, pairMaps)
-        const courts = buildCourtFromPairs(players, pairs)
+        const pairs = getPairPlayers(filteredPlayers, pairMaps)
+        const courts = buildCourtFromPairs(players, [...pairs, ...pairsFromTeam])
         return courts
     }
-    const alonablePlayers = players.filter(player => player.isAlonable)
+    const alonablePlayers = filteredPlayers.filter(player => player.isAlonable)
     if (remainPlayerCount === 3) {
         let alonePlayers = sampleSize(alonablePlayers, 1)
         if (alonePlayers.length !== 1) {
-            alonePlayers = sampleSize(players, 1)
+            alonePlayers = sampleSize(filteredPlayers, 1)
         }
         const alonePlayer = alonePlayers[0]
-        const otherPlayers = players.filter(player => player.name !== alonePlayer.name)
-        const pairs = [[alonePlayer.name], ...getPairPlayers(otherPlayers, pairMaps)]
+        const otherPlayers = filteredPlayers.filter(player => player.name !== alonePlayer.name)
+        const pairs = [[alonePlayer.name], ...getPairPlayers(otherPlayers, pairMaps), ...pairsFromTeam]
         const courts = buildCourtFromPairs(players, pairs)
         return courts
     }
     let alonePlayers = sampleSize(alonablePlayers, 2)
     if (alonePlayers.length < 2) {
-        const notAlonablePlayer = players.filter(player => !player.isAlonable)
+        const notAlonablePlayer = filteredPlayers.filter(player => !player.isAlonable)
         const additionalAlonePlayers = sampleSize(notAlonablePlayer, 2 - alonePlayers.length)
         alonePlayers = [...alonePlayers, ...additionalAlonePlayers]
     }
-    const otherPlayers = players.filter(player => !alonePlayers.find(alonePlayer => alonePlayer.name === player.name))
+    const otherPlayers = filteredPlayers.filter(player => !alonePlayers.find(alonePlayer => alonePlayer.name === player.name))
     const pairs = getPairPlayers(otherPlayers, pairMaps)
     const courts = [
         {
         red: [alonePlayers[0].name],
         blue: [alonePlayers[1].name]
         },
-        ...buildCourtFromPairs(players, pairs)
+        ...buildCourtFromPairs(players, [...pairs, ...pairsFromTeam]),
     ]
     return courts
 }

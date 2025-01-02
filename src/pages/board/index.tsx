@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'
-import { cloneDeep } from 'lodash';
+import { cloneDeep, shuffle, times } from 'lodash';
 import { Button } from 'react-bootstrap'
 import '../../App.css';
 import PlayerSelection from '../../components/PlayerSelection';
 import CourtSelection from '../../components/CourtSelection';
 import ScoreSelection from '../../components/ScoreSelection';
-import { BasePlayer } from '../../types';
+import { BasePlayer,  CourtInfo, Team } from '../../types';
 import { generatePairMaps, generateBalanceCourts, generateNormalCourts, forcePlayerToRest } from './helper'
 import { sendLog } from '../../services/log'
 
@@ -24,6 +24,8 @@ interface Court {
 interface Round {
   courts: Court[]
   rest: string[]
+  mode: string
+  courtsInfo: CourtInfo[]
 }
 
 // const MAX_PLAYER_PER_COURT = 4
@@ -42,15 +44,22 @@ interface PairMap {
 const Board = () => {
   const location = useLocation();
   const { players: _players, court: _courtCount } = location.state as LocationState;
-  const [courtCount, setCoutCount] = useState(_courtCount);
+  const [courtsInfo, setCourtsInfo] = useState<Array<CourtInfo>>([...Array(_courtCount).keys()].map(courtIndex => ({ name: `${courtIndex + 1}` })))
   const [players, setPlayers] = useState(_players);
   const [isBalanceMode, setIsBalanceMode] = useState(false);
+  const courtCount = courtsInfo.length
 
   useEffect(() => {
     if (_players.length === 0 || !courtCount) window.location.href = '/'
   }, [_players, courtCount])
   const [rounds, setRounds] = useState<Round[]>([])
   const [restPlayer, setRestPlayer] = useState<string[]>([])
+  const maximumTeam = Math.ceil(players.length / 2);
+  const initializeTeam = times(maximumTeam, index => ({
+        teamId: index + 1,
+        pairs: []
+    }))
+  const [teams, setTeams] = useState<Team[]>(initializeTeam);
   // const maxPlayers = courtCount * MAX_PLAYER_PER_COURT
   // const restPlayers = rounds.reduce((acc: string[], round) => [...acc, ...round.rest], [])
   // const restCount = players.reduce((acc: { [key: string]: string[] }, player) => {
@@ -70,22 +79,22 @@ const Board = () => {
     setPlayers(newPlayers)
   }
 
-  const generateCourts = (players: Player[], rest: string[]) => {
+  const generateCourts = (players: Player[], rest: string[], teams: Team[]) => {
     const playersWantToPlay = players.filter(player => !rest.includes(player.name))
-    // const { playersToPlay, playersForcedToRest = [] } = getPlayerToPlay(players, rest)
     const { playersToPlay, playersForcedToRest = [] } = forcePlayerToRest(playersWantToPlay, courtCount, rounds)
     const playersRestThisRound = [...rest, ...playersForcedToRest]
     const logMessage = `Generate round - ${rounds.length + 1}`
+    const currentMode = isBalanceMode ? 'balance' : 'normal'
     if (isBalanceMode) {
-      const courts = generateBalanceCourts(playersToPlay)
+      const courts = shuffle(generateBalanceCourts(playersToPlay, pairMaps))
       sendLog(logMessage, 'info', { court: JSON.stringify(courts), rest: JSON.stringify(playersRestThisRound) })
-      setRounds((prevRounds) => [...prevRounds, { courts: courts, rest: playersRestThisRound }])
+      setRounds((prevRounds) => [...prevRounds, { courts: courts, rest: playersRestThisRound, courtsInfo, mode: currentMode }])
     } else {
-      const courts = generateNormalCourts(playersToPlay, pairMaps);
+      const courts = shuffle(generateNormalCourts(playersToPlay, pairMaps, teams));
       sendLog(logMessage, 'info', { court: JSON.stringify(courts), rest: JSON.stringify(playersRestThisRound) })
-      setRounds((prevRounds) => [...prevRounds, { courts: courts, rest: playersRestThisRound }])
+      setRounds((prevRounds) => [...prevRounds, { courts: courts, rest: playersRestThisRound, courtsInfo, mode: currentMode }])
     }
-    setRestPlayer([])
+    // setRestPlayer([])
   }
   const removeLastRound = () => {
     const logMessage = 'Removing last round'
@@ -98,14 +107,47 @@ const Board = () => {
     sendLog(logMessage, 'info', { mode: newMode === isBalanceMode ? 'Balance Mode' : 'Normal Mode'})
     setIsBalanceMode(newMode)
   }
+
+  const handleToggleTeam = (playerName: string) => {
+      const currentTeam = teams.find(team => team.pairs.includes(playerName))
+      const nextAvailableTeam = teams.find(team => {
+          if (!currentTeam) return team.pairs.length < 2
+          return team.pairs.length === 1 && team.teamId !== currentTeam.teamId
+      }) as Team
+      if (!currentTeam) {
+          setTeams((prevTeam) => {
+              const newTeam = [...prevTeam]
+              newTeam.find(team => team.teamId === nextAvailableTeam.teamId)?.pairs.push(playerName)
+              return newTeam
+          })
+      } else {
+          if (!nextAvailableTeam) {
+              setTeams((prevTeam) => {
+                  const newTeam = [...prevTeam]
+                  const teamIndex = newTeam.findIndex(team => team.teamId === currentTeam.teamId)
+                  newTeam[teamIndex].pairs = currentTeam.pairs.filter(_playerName => _playerName !== playerName)
+                  return newTeam
+              })
+          } else {
+              setTeams((prevTeam) => {
+                  const newTeam = [...prevTeam]
+                  const teamIndex = newTeam.findIndex(team => team.teamId === currentTeam.teamId)
+                  newTeam[teamIndex].pairs = currentTeam.pairs.filter(_playerName => _playerName !== playerName)
+                  newTeam.find(team => team.teamId === nextAvailableTeam.teamId)?.pairs.push(playerName)
+                  return newTeam
+              })
+          }
+      }
+  }
+
   const reversedRounds = cloneDeep(rounds).reverse()
 
   return (
     <div className="App">
       <header className="App-header">
-        <ScoreSelection players={players} handleChangeScore={handleChangeScore} />
+        <ScoreSelection players={players} handleChangeScore={handleChangeScore} teams={teams} handleToggleTeam={handleToggleTeam} />
         <div className="court-selection-container">
-          <CourtSelection court={courtCount} handleChangeCourt={setCoutCount} />
+          <CourtSelection courtsInfo={courtsInfo} handleChangeCourtsInfo={setCourtsInfo} />
         </div>
         <h2>{`Courts: ${courtCount}`}</h2>
         
@@ -117,7 +159,7 @@ const Board = () => {
           handleSelectPlayer={(_players) => setRestPlayer(_players)}
         />
         <div className="generate-play-container">
-          <Button onClick={() => generateCourts(players, restPlayer)} className="generate-round-button">Generate Round</Button>
+          <Button onClick={() => generateCourts(players, restPlayer, teams)} className="generate-round-button">Generate Round</Button>
           <Button variant="danger" onClick={removeLastRound}>Remove Last Round</Button>
           <Button
             onClick={toggleMode}
@@ -129,12 +171,12 @@ const Board = () => {
         </div>
         {reversedRounds.map((round, index) => (
           <div key={`round-${index}`} className="round-container">
-            <h3>{`Round - ${rounds.length - index}`}</h3>
+            <h3>{`Round - ${rounds.length - index} (${round.mode})`}</h3>
             <p>Rest: {round.rest.join(',')}</p>
             {round.courts.map((court, courtIndex) => (
               <div key={`court-${courtIndex}`}>
                 <div className={`table-box-container ${courtIndex % 2 === 1 ? 'table-box-container--odd' : ''}`}>
-                  <div className="table-box">{`Court ${courtIndex + 1}`}</div>
+                  <div className="table-box">{`Court ${round.courtsInfo[courtIndex]?.name || ''}`}</div>
                   <div className="table-box">{court.red[0]}</div>
                   <div className="table-box">{court.red[1]}</div>
                   <div className="table-box table-box--vs">vs</div>
