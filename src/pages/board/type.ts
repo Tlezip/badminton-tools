@@ -1,7 +1,12 @@
-import { BasePlayer } from "../../types";
+import { BasePlayer, CourtInfo } from "../../types";
 
 export interface Player extends BasePlayer {
     isAlonable: boolean;
+}
+
+export enum PlayerTeam {
+    red = "red",
+    blue = "blue"
 }
 
 export interface Court {
@@ -20,4 +25,6 @@ export type Pair = string[]
 export interface Round {
     courts: Court[]
     rest: string[]
+    mode: string
+    courtsInfo: CourtInfo[]
 }

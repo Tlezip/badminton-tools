@@ -1,10 +1,11 @@
 .round-container {
-    padding: 16px 32px;
+    padding: 16px 16px;
     border-radius: 16px;
     border: 1px dashed white;
     margin-bottom: 16px;
-    min-width: 800px;
-    max-width: 90%;
+    width: 90%;
+    max-width: 800px;
+    position: relative;
 }
 
 .generate-play-container {
@@ -30,6 +31,7 @@
     display: flex;
     border-bottom: 1px solid white;
     text-align: left;
+    justify-content: center;
 }
 
 .table-box-container--odd {
@@ -37,7 +39,9 @@
 }
 
 .table-box {
-    flex: 1 0 0px;
+    flex: 0 0 0px;
+    margin: 0 8px;
+    white-space: nowrap;
 }
 
 .table-box--vs {
@@ -46,4 +50,9 @@
 
 .table-box--center {
     text-align: center;
+}
+
+.edit-round-button {
+    position: absolute;
+    right: 16px;
 }

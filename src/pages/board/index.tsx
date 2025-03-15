@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'
 import { cloneDeep, shuffle, times } from 'lodash';
-import { Button } from 'react-bootstrap'
+import { Button, Dropdown } from 'react-bootstrap'
 import '../../App.css';
 import PlayerSelection from '../../components/PlayerSelection';
 import CourtSelection from '../../components/CourtSelection';
@@ -9,23 +9,13 @@ import ScoreSelection from '../../components/ScoreSelection';
 import { BasePlayer,  CourtInfo, Team } from '../../types';
 import { generatePairMaps, generateBalanceCourts, generateNormalCourts, forcePlayerToRest } from './helper'
 import { sendLog } from '../../services/log'
+import { Round as IRound, PlayerTeam } from './type';
+import Round from '../../components/Round'
 
 import './index.css'
 
 interface Player extends BasePlayer {
   isAlonable: boolean
-}
-
-interface Court {
-  red: string[]
-  blue: string[]
-}
-
-interface Round {
-  courts: Court[]
-  rest: string[]
-  mode: string
-  courtsInfo: CourtInfo[]
 }
 
 // const MAX_PLAYER_PER_COURT = 4
@@ -35,10 +25,10 @@ interface LocationState {
   court: number
 }
 
-interface PairMap {
-  [name: string]: {
-    [pairName: string]: number
-  }
+interface PlayerSeatInformation {
+  courtIndex: number;
+  team: PlayerTeam;
+  playerIndex: number;
 }
 
 const Board = () => {
@@ -47,12 +37,13 @@ const Board = () => {
   const [courtsInfo, setCourtsInfo] = useState<Array<CourtInfo>>([...Array(_courtCount).keys()].map(courtIndex => ({ name: `${courtIndex + 1}` })))
   const [players, setPlayers] = useState(_players);
   const [isBalanceMode, setIsBalanceMode] = useState(false);
+  const [edittingIndex, setEdittingIndex] = useState<number>(-1);
   const courtCount = courtsInfo.length
 
   useEffect(() => {
     if (_players.length === 0 || !courtCount) window.location.href = '/'
   }, [_players, courtCount])
-  const [rounds, setRounds] = useState<Round[]>([])
+  const [rounds, setRounds] = useState<IRound[]>([])
   const [restPlayer, setRestPlayer] = useState<string[]>([])
   const maximumTeam = Math.ceil(players.length / 2);
   const initializeTeam = times(maximumTeam, index => ({
@@ -90,7 +81,12 @@ const Board = () => {
       sendLog(logMessage, 'info', { court: JSON.stringify(courts), rest: JSON.stringify(playersRestThisRound) })
       setRounds((prevRounds) => [...prevRounds, { courts: courts, rest: playersRestThisRound, courtsInfo, mode: currentMode }])
     } else {
-      const courts = shuffle(generateNormalCourts(playersToPlay, pairMaps, teams));
+      const filteredTeams = teams.filter(team => {
+          const isTeamFull = team.pairs.length === 2
+          const teamAbleToPlay = team.pairs.every((_playerName: string) => playersToPlay.find(player => player.name === _playerName))
+          return isTeamFull && teamAbleToPlay
+      })
+      const courts = shuffle(generateNormalCourts(playersToPlay, pairMaps, filteredTeams));
       sendLog(logMessage, 'info', { court: JSON.stringify(courts), rest: JSON.stringify(playersRestThisRound) })
       setRounds((prevRounds) => [...prevRounds, { courts: courts, rest: playersRestThisRound, courtsInfo, mode: currentMode }])
     }
@@ -142,9 +138,56 @@ const Board = () => {
 
   const reversedRounds = cloneDeep(rounds).reverse()
 
+  const handleSwapPlayer = (roundIndex: number, courtIndex: number, playerTeam: PlayerTeam, playerIndex: number, playerToSwapWith: string) => {
+    setRounds((prevRounds) => {
+      const isTargetResting = prevRounds[roundIndex].rest.includes(playerToSwapWith);
+      const playerInCurrentSeat = prevRounds[roundIndex].courts[courtIndex][playerTeam][playerIndex];
+      const isEmptySeat = !playerInCurrentSeat;
+
+      if (isTargetResting) {
+        prevRounds[roundIndex].courts[courtIndex][playerTeam][playerIndex] = playerToSwapWith;
+        const restWithoutTargetPlayer = prevRounds[roundIndex].rest.filter(restPlayer => restPlayer !== playerToSwapWith);
+        prevRounds[roundIndex].rest = isEmptySeat ? restWithoutTargetPlayer : [...restWithoutTargetPlayer, playerInCurrentSeat];
+        return [...prevRounds];
+      }
+      const formattedPlayerInformation = prevRounds[roundIndex].courts.reduce<{ [k: string]: PlayerSeatInformation }>((acc, court, _courtIndex) => {
+        const formattedPlayerInformationRedTeam = court.red.reduce((accRed, player, _playerIndex) => ({
+          ...accRed,
+          [player]: {
+            courtIndex: _courtIndex,
+            team: 'red',
+            playerIndex: _playerIndex,
+          },
+        }), {});
+        const formattedPlayerInformationBlueTeam = court.blue.reduce((accBlue, player, _playerIndex) => ({
+          ...accBlue,
+          [player]: {
+            courtIndex: _courtIndex,
+            team: 'blue',
+            playerIndex: _playerIndex,
+          },
+        }), {});
+        return {
+          ...acc,
+          ...formattedPlayerInformationRedTeam,
+          ...formattedPlayerInformationBlueTeam,
+        }
+      }, {});
+      const previousTargetSeat = formattedPlayerInformation[playerToSwapWith];
+
+      if (isEmptySeat) {
+        prevRounds[roundIndex].courts[previousTargetSeat.courtIndex][previousTargetSeat.team] = prevRounds[roundIndex].courts[previousTargetSeat.courtIndex][previousTargetSeat.team].filter(playerName => playerName !== playerToSwapWith);
+      } else {
+        prevRounds[roundIndex].courts[previousTargetSeat.courtIndex][previousTargetSeat.team][previousTargetSeat.playerIndex] = prevRounds[roundIndex].courts[courtIndex][playerTeam][playerIndex];
+      }
+      prevRounds[roundIndex].courts[courtIndex][playerTeam][playerIndex] = playerToSwapWith;
+      return [...prevRounds];
+    })
+  }
+
   return (
     <div className="App">
-      <header className="App-header">
+      <div className="App-header">
         <ScoreSelection players={players} handleChangeScore={handleChangeScore} teams={teams} handleToggleTeam={handleToggleTeam} />
         <div className="court-selection-container">
           <CourtSelection courtsInfo={courtsInfo} handleChangeCourtsInfo={setCourtsInfo} />
@@ -169,25 +212,19 @@ const Board = () => {
             {isBalanceMode ? 'Balance Mode' : 'Normal mode'}
           </Button>
         </div>
-        {reversedRounds.map((round, index) => (
-          <div key={`round-${index}`} className="round-container">
-            <h3>{`Round - ${rounds.length - index} (${round.mode})`}</h3>
-            <p>Rest: {round.rest.join(',')}</p>
-            {round.courts.map((court, courtIndex) => (
-              <div key={`court-${courtIndex}`}>
-                <div className={`table-box-container ${courtIndex % 2 === 1 ? 'table-box-container--odd' : ''}`}>
-                  <div className="table-box">{`Court ${round.courtsInfo[courtIndex]?.name || ''}`}</div>
-                  <div className="table-box">{court.red[0]}</div>
-                  <div className="table-box">{court.red[1]}</div>
-                  <div className="table-box table-box--vs">vs</div>
-                  <div className="table-box">{court.blue[0]}</div>
-                  <div className="table-box">{court.blue[1]}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        ))}
-      </header>
+        {reversedRounds.map((round, index) => {
+          const roundIndex = rounds.length - index - 1;
+          return (
+            <Round
+              players={players}
+              round={round}
+              roundNumber={rounds.length - index}
+              key={`round-${index}`}
+              handleSwapPlayer={(courtIndex, playerTeam, playerIndex, playerToSwapWith) => handleSwapPlayer(roundIndex, courtIndex, playerTeam, playerIndex, playerToSwapWith)}
+            />
+          )
+        })}
+      </div>
     </div>
   );
 }

@@ -131,17 +131,12 @@ const buildCourtFromPairs = (players: Player[], pairs: Pair[]): Court[] => {
 }
 
 export const generateNormalCourts = (players: Player[], pairMaps: PairMap, teams: Team[]) => {
-    const filteredTeams = teams.filter(team => {
-        const isTeamFull = team.pairs.length === 2
-        const teamAbleToPlay = team.pairs.every((_playerName: string) => players.find(player => player.name === _playerName))
-        return isTeamFull && teamAbleToPlay
-    })
     const filteredPlayers = players.filter(player => {
-        const hasTeam = filteredTeams.find(team => team.pairs.includes(player.name))
+        const hasTeam = teams.find(team => team.pairs.includes(player.name))
         return !hasTeam
     })
     const remainPlayerCount = players.length % 4
-    const pairsFromTeam = filteredTeams.map(team => team.pairs)
+    const pairsFromTeam = teams.map(team => team.pairs)
     if (remainPlayerCount === 0) {
         const pairs = getPairPlayers(filteredPlayers, pairMaps)
         const courts = buildCourtFromPairs(players, [...pairs, ...pairsFromTeam])

@@ -1,8 +1,7 @@
 import { useState } from 'react'
 import { Button, Modal } from 'react-bootstrap'
-import { times } from 'lodash'
 import { BasePlayer, Team } from '../../types';
-import bas from '../../bas.png';
+import bas from '../../sakamoto.png';
 import './index.css'
 
 interface Props {
@@ -13,13 +12,7 @@ interface Props {
 }
 
 const ScoreSelection: React.FC<Props> = ({ players, teams, handleChangeScore, handleToggleTeam }) => {
-    // const maximumTeam = Math.ceil(players.length / 2);
-    // const initializeTeam = times(maximumTeam, index => ({
-    //     teamId: index + 1,
-    //     pairs: []
-    // }))
     const [isOpen, setIsOpen] = useState(false);
-    // const [teams, setTeams] = useState<Team[]>(initializeTeam);
 
     const handleOpen = () => {
         setIsOpen(true);
@@ -30,37 +23,6 @@ const ScoreSelection: React.FC<Props> = ({ players, teams, handleChangeScore, ha
     const handleChange = (playerName: string, newScore: number) => {
         handleChangeScore(playerName, newScore)
     }
-    // const handleToggleTeam = (playerName: string) => {
-    //     const currentTeam = teams.find(team => team.pairs.includes(playerName))
-    //     const nextAvailableTeam = teams.find(team => {
-    //         if (!currentTeam) return team.pairs.length < 2
-    //         return team.pairs.length === 1 && team.teamId !== currentTeam.teamId
-    //     }) as Team
-    //     if (!currentTeam) {
-    //         setTeams((prevTeam) => {
-    //             const newTeam = [...prevTeam]
-    //             newTeam.find(team => team.teamId === nextAvailableTeam.teamId)?.pairs.push(playerName)
-    //             return newTeam
-    //         })
-    //     } else {
-    //         if (!nextAvailableTeam) {
-    //             setTeams((prevTeam) => {
-    //                 const newTeam = [...prevTeam]
-    //                 const teamIndex = newTeam.findIndex(team => team.teamId === currentTeam.teamId)
-    //                 newTeam[teamIndex].pairs = currentTeam.pairs.filter(_playerName => _playerName !== playerName)
-    //                 return newTeam
-    //             })
-    //         } else {
-    //             setTeams((prevTeam) => {
-    //                 const newTeam = [...prevTeam]
-    //                 const teamIndex = newTeam.findIndex(team => team.teamId === currentTeam.teamId)
-    //                 newTeam[teamIndex].pairs = currentTeam.pairs.filter(_playerName => _playerName !== playerName)
-    //                 newTeam.find(team => team.teamId === nextAvailableTeam.teamId)?.pairs.push(playerName)
-    //                 return newTeam
-    //             })
-    //         }
-    //     }
-    // }
 
     return (
         <div>
