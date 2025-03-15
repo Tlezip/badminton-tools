@@ -22,11 +22,12 @@ const Court: React.FC<Props> = ({ isEditting, players, courtInfo, court, courtIn
               {playerName || '-'}
             </Dropdown.Toggle>
             <Dropdown.Menu>
-              {
-                otherPlayers.map(player => (
-                  <Dropdown.Item onClick={() => handleSwapPlayer(playerTeam, playerIndex, player.name)}>{player.name}</Dropdown.Item>
-                ))
-              }
+                <Dropdown.Item onClick={() => handleSwapPlayer(playerTeam, playerIndex, '')}>-</Dropdown.Item>
+                {
+                    otherPlayers.map(player => (
+                        <Dropdown.Item onClick={() => handleSwapPlayer(playerTeam, playerIndex, player.name)} key={player.name}>{player.name}</Dropdown.Item>
+                    ))
+                }
             </Dropdown.Menu>
           </Dropdown>
         )

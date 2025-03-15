@@ -1,5 +1,5 @@
 import { sampleSize, shuffle, orderBy } from 'lodash'
-import { Player, Court, PairMap, Pair, Round } from './type'
+import { Player, Court, PairMap, Pair, Round, PlayerTeam } from './type'
 import { Team } from '../../types'
 
 const buildBalanceCourtFromPlayers = (players: Player[], pairMaps: PairMap): Court => {
@@ -221,4 +221,63 @@ export const forcePlayerToRest = (players: Player[], courtCount: number, rounds:
         return { playersToPlay, playersForcedToRest }
     }
     return { playersToPlay: players, playersForcedToRest: [] }
+}
+
+interface PlayerSeatInformation {
+  courtIndex: number;
+  team: PlayerTeam;
+  playerIndex: number;
+}
+
+export const getRoundAfterSwapPlayer = (round: Round, swapToCourtIndex: number, swapToPlayerTeam: PlayerTeam, swapToPlayerIndex: number, playerToSwapWith: string): Round => {
+    const clonedRound = { ...round };
+    const isTargetResting = clonedRound.rest.includes(playerToSwapWith);
+    const playerInCurrentSeat = clonedRound.courts[swapToCourtIndex][swapToPlayerTeam][swapToPlayerIndex];
+    const isEmptySeat = !playerInCurrentSeat;
+
+    if (!playerToSwapWith) {
+        if (!playerInCurrentSeat) return round;
+        clonedRound.courts[swapToCourtIndex][swapToPlayerTeam] = clonedRound.courts[swapToCourtIndex][swapToPlayerTeam].filter(player => player !== playerInCurrentSeat);
+        clonedRound.rest = [...clonedRound.rest, playerInCurrentSeat];
+        return clonedRound;
+    }
+
+    if (isTargetResting) {
+        clonedRound.courts[swapToCourtIndex][swapToPlayerTeam][swapToPlayerIndex] = playerToSwapWith;
+        const restWithoutTargetPlayer = clonedRound.rest.filter(restPlayer => restPlayer !== playerToSwapWith);
+        clonedRound.rest = isEmptySeat ? restWithoutTargetPlayer : [...restWithoutTargetPlayer, playerInCurrentSeat];
+        return clonedRound;
+    }
+    const formattedPlayerInformation = clonedRound.courts.reduce<{ [k: string]: PlayerSeatInformation }>((acc, court, _courtIndex) => {
+    const formattedPlayerInformationRedTeam = court.red.reduce((accRed, player, _playerIndex) => ({
+        ...accRed,
+        [player]: {
+        courtIndex: _courtIndex,
+        team: 'red',
+        playerIndex: _playerIndex,
+        },
+    }), {});
+    const formattedPlayerInformationBlueTeam = court.blue.reduce((accBlue, player, _playerIndex) => ({
+        ...accBlue,
+        [player]: {
+        courtIndex: _courtIndex,
+        team: 'blue',
+        playerIndex: _playerIndex,
+        },
+    }), {});
+    return {
+        ...acc,
+        ...formattedPlayerInformationRedTeam,
+        ...formattedPlayerInformationBlueTeam,
+    }
+    }, {});
+    const previousTargetSeat = formattedPlayerInformation[playerToSwapWith];
+
+    if (isEmptySeat) {
+        clonedRound.courts[previousTargetSeat.courtIndex][previousTargetSeat.team] = clonedRound.courts[previousTargetSeat.courtIndex][previousTargetSeat.team].filter(playerName => playerName !== playerToSwapWith);
+    } else {
+        clonedRound.courts[previousTargetSeat.courtIndex][previousTargetSeat.team][previousTargetSeat.playerIndex] = playerInCurrentSeat;
+    }
+    clonedRound.courts[swapToCourtIndex][swapToPlayerTeam][swapToPlayerIndex] = playerToSwapWith;
+    return clonedRound;
 }

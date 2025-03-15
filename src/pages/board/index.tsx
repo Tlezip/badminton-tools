@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom'
 import { cloneDeep, shuffle, times } from 'lodash';
-import { Button, Dropdown } from 'react-bootstrap'
+import { Button } from 'react-bootstrap'
 import '../../App.css';
 import PlayerSelection from '../../components/PlayerSelection';
 import CourtSelection from '../../components/CourtSelection';
 import ScoreSelection from '../../components/ScoreSelection';
 import { BasePlayer,  CourtInfo, Team } from '../../types';
-import { generatePairMaps, generateBalanceCourts, generateNormalCourts, forcePlayerToRest } from './helper'
+import { generatePairMaps, generateBalanceCourts, generateNormalCourts, forcePlayerToRest, getRoundAfterSwapPlayer } from './helper'
 import { sendLog } from '../../services/log'
 import { Round as IRound, PlayerTeam } from './type';
 import Round from '../../components/Round'
@@ -23,12 +23,6 @@ interface Player extends BasePlayer {
 interface LocationState {
   players: Player[]
   court: number
-}
-
-interface PlayerSeatInformation {
-  courtIndex: number;
-  team: PlayerTeam;
-  playerIndex: number;
 }
 
 const Board = () => {
@@ -140,47 +134,8 @@ const Board = () => {
 
   const handleSwapPlayer = (roundIndex: number, courtIndex: number, playerTeam: PlayerTeam, playerIndex: number, playerToSwapWith: string) => {
     setRounds((prevRounds) => {
-      const isTargetResting = prevRounds[roundIndex].rest.includes(playerToSwapWith);
-      const playerInCurrentSeat = prevRounds[roundIndex].courts[courtIndex][playerTeam][playerIndex];
-      const isEmptySeat = !playerInCurrentSeat;
-
-      if (isTargetResting) {
-        prevRounds[roundIndex].courts[courtIndex][playerTeam][playerIndex] = playerToSwapWith;
-        const restWithoutTargetPlayer = prevRounds[roundIndex].rest.filter(restPlayer => restPlayer !== playerToSwapWith);
-        prevRounds[roundIndex].rest = isEmptySeat ? restWithoutTargetPlayer : [...restWithoutTargetPlayer, playerInCurrentSeat];
-        return [...prevRounds];
-      }
-      const formattedPlayerInformation = prevRounds[roundIndex].courts.reduce<{ [k: string]: PlayerSeatInformation }>((acc, court, _courtIndex) => {
-        const formattedPlayerInformationRedTeam = court.red.reduce((accRed, player, _playerIndex) => ({
-          ...accRed,
-          [player]: {
-            courtIndex: _courtIndex,
-            team: 'red',
-            playerIndex: _playerIndex,
-          },
-        }), {});
-        const formattedPlayerInformationBlueTeam = court.blue.reduce((accBlue, player, _playerIndex) => ({
-          ...accBlue,
-          [player]: {
-            courtIndex: _courtIndex,
-            team: 'blue',
-            playerIndex: _playerIndex,
-          },
-        }), {});
-        return {
-          ...acc,
-          ...formattedPlayerInformationRedTeam,
-          ...formattedPlayerInformationBlueTeam,
-        }
-      }, {});
-      const previousTargetSeat = formattedPlayerInformation[playerToSwapWith];
-
-      if (isEmptySeat) {
-        prevRounds[roundIndex].courts[previousTargetSeat.courtIndex][previousTargetSeat.team] = prevRounds[roundIndex].courts[previousTargetSeat.courtIndex][previousTargetSeat.team].filter(playerName => playerName !== playerToSwapWith);
-      } else {
-        prevRounds[roundIndex].courts[previousTargetSeat.courtIndex][previousTargetSeat.team][previousTargetSeat.playerIndex] = prevRounds[roundIndex].courts[courtIndex][playerTeam][playerIndex];
-      }
-      prevRounds[roundIndex].courts[courtIndex][playerTeam][playerIndex] = playerToSwapWith;
+      const newRound = getRoundAfterSwapPlayer(prevRounds[roundIndex], courtIndex, playerTeam, playerIndex, playerToSwapWith);
+      prevRounds[roundIndex] = newRound;
       return [...prevRounds];
     })
   }
