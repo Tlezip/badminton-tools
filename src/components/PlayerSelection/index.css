@@ -14,6 +14,7 @@
 .player {
     white-space: nowrap;
     margin-bottom: 8px;
+    overflow: hidden;
 }
 
 .palyer-container:nth-child(odd) {

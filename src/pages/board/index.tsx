@@ -7,7 +7,7 @@ import PlayerSelection from '../../components/PlayerSelection';
 import CourtSelection from '../../components/CourtSelection';
 import ScoreSelection from '../../components/ScoreSelection';
 import { BasePlayer,  CourtInfo, Team } from '../../types';
-import { generatePairMaps, generateBalanceCourts, generateNormalCourts, forcePlayerToRest, getRoundAfterSwapPlayer } from './helper'
+import { generatePairMaps, generateBalanceCourts, generateNormalCourts, forcePlayerToRest, getRoundAfterSwapPlayer, convertRoundsToRestMaps } from './helper'
 import { sendLog } from '../../services/log'
 import { Round as IRound, PlayerTeam } from './type';
 import Round from '../../components/Round'
@@ -41,9 +41,9 @@ const Board = () => {
   const [restPlayer, setRestPlayer] = useState<string[]>([])
   const maximumTeam = Math.ceil(players.length / 2);
   const initializeTeam = times(maximumTeam, index => ({
-        teamId: index + 1,
-        pairs: []
-    }))
+      teamId: index + 1,
+      pairs: []
+  }))
   const [teams, setTeams] = useState<Team[]>(initializeTeam);
   // const maxPlayers = courtCount * MAX_PLAYER_PER_COURT
   // const restPlayers = rounds.reduce((acc: string[], round) => [...acc, ...round.rest], [])
@@ -66,7 +66,8 @@ const Board = () => {
 
   const generateCourts = (players: Player[], rest: string[], teams: Team[]) => {
     const playersWantToPlay = players.filter(player => !rest.includes(player.name))
-    const { playersToPlay, playersForcedToRest = [] } = forcePlayerToRest(playersWantToPlay, courtCount, rounds)
+    const restMaps = convertRoundsToRestMaps(playersWantToPlay, rounds);
+    const { playersToPlay, playersForcedToRest = [] } = forcePlayerToRest(playersWantToPlay, courtCount, restMaps)
     const playersRestThisRound = [...rest, ...playersForcedToRest]
     const logMessage = `Generate round - ${rounds.length + 1}`
     const currentMode = isBalanceMode ? 'balance' : 'normal'
@@ -148,7 +149,6 @@ const Board = () => {
           <CourtSelection courtsInfo={courtsInfo} handleChangeCourtsInfo={setCourtsInfo} />
         </div>
         <h2>{`Courts: ${courtCount}`}</h2>
-        
         Player to rest:
         <PlayerSelection
           selectAll={false}

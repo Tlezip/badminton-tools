@@ -1,0 +1,22 @@
+.court-actions {
+    display: flex;
+    justify-content: center;
+}
+
+.generate-court-container {
+    margin-right: 4px;
+}
+
+.court-card__player-info-container {
+    display: flex;
+    justify-content: center;
+}
+
+.court-card__player-info {
+    margin: 0;
+    margin-right: 4px;
+}
+
+.court-card__editing-container {
+    margin-right: 4px;
+}

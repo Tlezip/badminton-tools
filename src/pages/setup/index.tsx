@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button, Form } from 'react-bootstrap'
+import { last } from 'lodash'
 // import PlayerSelection from '../../components/PlayerSelection'
 import settings from '../../settings.json'
 
@@ -15,7 +16,9 @@ const Setup = () => {
     const getPlayersFromText = (text: string) => {
         const playerRegex = /^\d+\.( ?)+(.*)/
         const rankRegex = /\((\d+)\)$/
-        const players = playersInput.split('\n')
+        const metadataSeparatorRegex = /-+\n/
+        const formattedPlayersInput = last(playersInput.split(metadataSeparatorRegex)) || ''
+        const players = formattedPlayersInput.split('\n')
             .filter(line => line.match(playerRegex)?.[2])
             .map(playerText => {
                 // const playerName = playerText.replace(playerRegex, '').replace(rankRegex, '').trim()
@@ -34,7 +37,7 @@ const Setup = () => {
 
     const courts = [1, 2, 3, 4]
     const players = getPlayersFromText(playersInput)
-    const defaultRank = 3;
+    const defaultRank = 5;
     const playersWithDefaultRank = players.map(player => ({ ...player, rank: player.rank || defaultRank }))
 
     return (

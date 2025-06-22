@@ -4,6 +4,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Setup from './pages/setup'
 import Alonable from './pages/alonable'
 import Board from './pages/board'
+import BoardV2 from './pages/boardv2'
 import { sendLog } from './services/log';
 import './App.css';
 
@@ -24,6 +25,7 @@ function App() {
           <Route path="/" element={<Setup />} />
           <Route path="alonable" element={<Alonable />} />
           <Route path="board" element={<ErrorBoundary onError={handleError} FallbackComponent={() => <div>error</div>}><Board /></ErrorBoundary>} />
+          <Route path="board/v2" element={<ErrorBoundary onError={handleError} FallbackComponent={() => <div>error</div>}><BoardV2 /></ErrorBoundary>} />
         </Routes>
       </BrowserRouter>
     </ErrorBoundary>

@@ -172,6 +172,31 @@ export const generateNormalCourts = (players: Player[], pairMaps: PairMap, teams
     return courts
 }
 
+export const generatePairMapsByCourts = (players: Player[], courts: Court[]) => {
+    const initialPairMaps = players.reduce(
+        (acc, currentPlayer) => {
+            const otherPlayers = players.filter(player => player.name !== currentPlayer.name)
+            const currentPlayerPairMap = otherPlayers.reduce((pairMapAcc, otherPlayer) => ({ ...pairMapAcc, [otherPlayer.name]: 0 }), {})
+            return {
+                ...acc,
+                [currentPlayer.name]: currentPlayerPairMap
+            }
+        },
+        {}
+    )
+    return courts.reduce<PairMap>((acc, court) => {
+        if (court.blue.length === 2) {
+            acc[court.blue[0]][court.blue[1]] += 1
+            acc[court.blue[1]][court.blue[0]] += 1
+        }
+        if (court.red.length === 2) {
+            acc[court.red[0]][court.red[1]] += 1
+            acc[court.red[1]][court.red[0]] += 1
+        }
+        return acc
+    }, initialPairMaps);
+}
+
 export const generatePairMaps = (players: Player[], rounds: Round[]) => {
     const initialPairMaps = players.reduce(
         (acc, currentPlayer) => {
@@ -199,18 +224,54 @@ export const generatePairMaps = (players: Player[], rounds: Round[]) => {
     }, initialPairMaps);
 }
 
-export const forcePlayerToRest = (players: Player[], courtCount: number, rounds: Round[]) => {
+export const convertCourtsToPlayedMaps = (players: Player[], courts: Court[]) => {
+    const playedPlayers = courts.reduce<string[]>((acc, court) => {
+        return [
+            ...acc,
+            ...court.blue,
+            ...court.red
+        ]
+    }, [])
+    const playedMaps = players.reduce<{ [x: string]: string[] }>((acc, player) => {
+        const playerName = player.name
+        const playerPlayedCount = `${playedPlayers.filter(playedPlayer => playedPlayer === playerName).length}`
+        return { ...acc, [playerPlayedCount]: [...(acc[playerPlayedCount] || []), playerName] }
+    }, {})
+    return playedMaps;
+}
+
+export const convertRoundsToRestMaps = (players: Player[], rounds: Round[]) => {
+    const restPlayers = rounds.reduce((acc: string[], round) => [...acc, ...round.rest], [])
+    const restMaps = players.reduce((acc: { [key: string]: string[] }, player) => {
+        const playerName = player.name
+        const playerRestCount = `${restPlayers.filter(restPlayer => restPlayer === playerName).length}`
+        return { ...acc, [playerRestCount]: [...(acc[playerRestCount] || []), playerName] }
+    }, {})
+    return restMaps;
+}
+
+export const forcePlayerToRestByPlayedMaps = (players: Player[], courtCount: number, playedMaps: { [x: string]: string[] }) => {
     const MAX_PLAYER_PER_COURT = 4
     const maxPlayersCount = courtCount * MAX_PLAYER_PER_COURT
     const isPlayerExceed = players.length > maxPlayersCount
     if (isPlayerExceed) {
-        const restPlayers = rounds.reduce((acc: string[], round) => [...acc, ...round.rest], [])
-        const restMaps = players.reduce((acc: { [key: string]: string[] }, player) => {
-            const playerName = player.name
-            const playerRestCount = `${restPlayers.filter(restPlayer => restPlayer === playerName).length}`
-            return { ...acc, [playerRestCount]: [...(acc[playerRestCount] || []), playerName] }
-        }, {})
+        const exceedNumber = players.length - maxPlayersCount
+        const playersForcedToRest = orderBy(Object.keys(playedMaps), [], ['desc']).reduce((acc: string[], key: string) => {
+            const playersToRandomForceRest = playedMaps[key]
+            if (acc.length < exceedNumber) return [...acc, ...sampleSize(playersToRandomForceRest, exceedNumber - acc.length)]
+            return acc
+        }, [])
+        const playersToPlay = players.filter(player => !playersForcedToRest.includes(player.name))
+        return { playersToPlay, playersForcedToRest }
+    }
+    return { playersToPlay: players, playersForcedToRest: [] }
+}
 
+export const forcePlayerToRest = (players: Player[], courtCount: number, restMaps: { [x: string]: string[] }) => {
+    const MAX_PLAYER_PER_COURT = 4
+    const maxPlayersCount = courtCount * MAX_PLAYER_PER_COURT
+    const isPlayerExceed = players.length > maxPlayersCount
+    if (isPlayerExceed) {
         const exceedNumber = players.length - maxPlayersCount
         const playersForcedToRest = orderBy(Object.keys(restMaps)).reduce((acc: string[], key: string) => {
             const playersToRandomForceRest = restMaps[key]

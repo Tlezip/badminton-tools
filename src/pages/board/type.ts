@@ -28,3 +28,14 @@ export interface Round {
     mode: string
     courtsInfo: CourtInfo[]
 }
+
+export enum CourtStatus {
+    NotStarted = 'not-started',
+    Playing = 'playing',
+    Finished = 'finished'
+}
+
+export interface IndependentCourt extends Court {
+    courtIndex: number;
+    status: CourtStatus;
+}

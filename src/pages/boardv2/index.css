@@ -1,0 +1,19 @@
+.App {
+    background: grey;
+}
+
+.courts-container {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.court-container {
+    display: flex;
+    max-width: 300px;
+    margin: 10px 40px;
+}
+
+.histories-container {
+    margin: 20px 0;
+}
