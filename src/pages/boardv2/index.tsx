@@ -149,6 +149,7 @@ const BoardV2 = () => {
         if (isBothPlayerPlaying) {
             const firstPlayerTeam = courts[firstPlayerCourtIndex].blue.includes(firstPlayer) ? 'blue' : 'red'
             const secondPlayerTeam = courts[secondPlayerCourtIndex].blue.includes(secondPlayer) ? 'blue' : 'red'
+            if (firstPlayerTeam === secondPlayerTeam) return
             if (firstPlayerCourtIndex === secondPlayerCourtIndex) {
                 setCourts((prevCourts) => {
                     prevCourts[firstPlayerCourtIndex][firstPlayerTeam] = prevCourts[firstPlayerCourtIndex][firstPlayerTeam].map(playerName => playerName === firstPlayer ? secondPlayer : playerName)
