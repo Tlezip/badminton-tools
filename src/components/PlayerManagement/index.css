@@ -1,0 +1,13 @@
+.player-management__rank-container {
+    display: flex;
+    align-items: center;
+}
+
+.player-management__rank {
+    margin: 0 8px;
+}
+
+.player-management__played {
+    display: flex;
+    justify-content: center;
+}

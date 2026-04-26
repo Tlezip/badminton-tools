@@ -1,0 +1,75 @@
+.court-v3__header-container {
+    display: flex;
+    justify-content: space-between;
+}
+
+.court-v3__sub-header-container {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+.court-v3__generate-court {
+    margin-left: 8px;
+}
+
+.court-v3__finish-court {
+    margin-left: 8px;
+}
+
+.court-v3__court-selection-container {
+    max-width: 150px;
+}
+
+.court-v3__court-cards-container {
+    display: flex;
+    flex-wrap: wrap;
+    margin-top: 16px;
+}
+
+.court-v3__court-card-container {
+    flex: 0 0 calc(50% - 8px);
+    margin-bottom: 8px;
+}
+
+.court-v3__court-card-container:nth-child(2n) {
+    margin-left: 8px;
+}
+
+.court-v3__court-card-container:nth-child(2n-1) {
+    margin-right: 8px;
+}
+
+@media (max-width: 767px) {
+    .court-v3__court-card-container {
+        margin-right: 0;
+        flex-basis: 100%;
+    }
+
+    .court-v3__court-card-container:nth-child(2n) {
+        margin-left: 0;
+    }
+
+    .court-v3__sub-header-container {
+        flex-direction: column;
+    }
+
+    .court-v3__generate-court {
+        margin-left: 0;
+        margin-top: 8px;
+        margin-bottom: 8px;
+    }
+
+    .court-v3__generate-court button {
+        width: 100%;
+    }
+
+    .court-v3__finish-court {
+        margin-left: 0;
+        margin-bottom: 8px;
+    }
+
+    .court-v3__finish-court button {
+        width: 100%;
+    }
+}

@@ -1,0 +1,8 @@
+.player-play-text-container {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.player-play-text {
+    flex: 0 0 50%;
+}

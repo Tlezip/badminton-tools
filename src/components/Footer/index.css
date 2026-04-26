@@ -1,0 +1,9 @@
+.footer {
+    width: 100%;
+    background: white;
+    /* box-shadow: 1px 10px 10px -15px rgba(0,0,0,0.24); */
+}
+
+.footer__content {
+    padding: 16px 4vw;
+}

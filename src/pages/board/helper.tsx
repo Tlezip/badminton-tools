@@ -1,6 +1,7 @@
-import { sampleSize, shuffle, orderBy } from 'lodash'
-import { Player, Court, PairMap, Pair, Round, PlayerTeam } from './type'
-import { Team } from '../../types'
+import { sampleSize, shuffle, orderBy, last } from 'lodash'
+import { Player, Court, PairMap, Pair, Round, PlayerTeam, IndependentCourt, IndependentCourtV3, CourtStatus } from './type'
+import { IPlayer, Team } from '../../types'
+import settings from '../../settings.json'
 
 const buildBalanceCourtFromPlayers = (players: Player[], pairMaps: PairMap): Court => {
     const playerCount = players.length
@@ -131,6 +132,7 @@ const buildCourtFromPairs = (players: Player[], pairs: Pair[]): Court[] => {
 }
 
 export const generateNormalCourts = (players: Player[], pairMaps: PairMap, teams: Team[]) => {
+    console.log({ players })
     const filteredPlayers = players.filter(player => {
         const hasTeam = teams.find(team => team.pairs.includes(player.name))
         return !hasTeam
@@ -171,6 +173,88 @@ export const generateNormalCourts = (players: Player[], pairMaps: PairMap, teams
     ]
     return courts
 }
+
+const buildRandomCourtFromPairs = (pairs: Pair[]): Court[] => {
+    const shuffled = shuffle(pairs)
+    const courts = shuffled.reduce<Court[]>((acc, pair) => {
+        if (acc.length === 0 || acc[acc.length-1].blue.length > 0) {
+            return [...acc, { red: pair, blue: [] }]
+        }
+        acc[acc.length - 1].blue = pair
+        return acc
+    }, [])
+    return courts
+}
+
+export const generateRandomCourt = (players: Player[], pairMaps: PairMap, teams: Team[]) => {
+    const filteredPlayers = players.filter(player => {
+        const hasTeam = teams.find(team => team.pairs.includes(player.name))
+        return !hasTeam
+    })
+    const remainPlayerCount = players.length % 4
+    const pairsFromTeam = teams.map(team => team.pairs)
+    if (remainPlayerCount === 0) {
+        const pairs = getPairPlayers(filteredPlayers, pairMaps)
+        const courts = buildRandomCourtFromPairs([...pairs, ...pairsFromTeam])
+        return courts
+    }
+    const alonablePlayers = filteredPlayers.filter(player => player.isAlonable)
+    if (remainPlayerCount === 3) {
+        let alonePlayers = sampleSize(alonablePlayers, 1)
+        if (alonePlayers.length !== 1) {
+            alonePlayers = sampleSize(filteredPlayers, 1)
+        }
+        const alonePlayer = alonePlayers[0]
+        const otherPlayers = filteredPlayers.filter(player => player.name !== alonePlayer.name)
+        const pairs = [[alonePlayer.name], ...getPairPlayers(otherPlayers, pairMaps), ...pairsFromTeam]
+        const courts = buildRandomCourtFromPairs(pairs)
+        return courts
+    }
+    let alonePlayers = sampleSize(alonablePlayers, 2)
+    if (alonePlayers.length < 2) {
+        const notAlonablePlayer = filteredPlayers.filter(player => !player.isAlonable)
+        const additionalAlonePlayers = sampleSize(notAlonablePlayer, 2 - alonePlayers.length)
+        alonePlayers = [...alonePlayers, ...additionalAlonePlayers]
+    }
+    const otherPlayers = filteredPlayers.filter(player => !alonePlayers.find(alonePlayer => alonePlayer.name === player.name))
+    const pairs = getPairPlayers(otherPlayers, pairMaps)
+    const courts = [
+        {
+        red: [alonePlayers[0].name],
+        blue: [alonePlayers[1].name]
+        },
+        ...buildRandomCourtFromPairs([...pairs, ...pairsFromTeam]),
+    ]
+    return courts
+}
+
+const getPlayerScore = (playerName: string, players: Player[]) => {
+    return players.find(player => player.name === playerName)?.rank || 0
+};
+
+export const shouldBalanceCourt = (court: Court, players: Player[]) => {
+    const threshold = 6;
+    const redScore = getPlayerScore(court.red[0], players) + getPlayerScore(court.red[1], players)
+    const blueScore = getPlayerScore(court.blue[0], players) + getPlayerScore(court.blue[1], players)
+    return Math.abs(redScore - blueScore) >= threshold;
+};
+
+export const balanceCourt = (court: Court, players: Player[]) => {
+    const courtPlayerNames = [...court.red, ...court.blue]
+    const courtPlayers = players.filter(player => courtPlayerNames.includes(player.name))
+    const scores = courtPlayers.map(player => player.rank)
+    const maxScore = Math.max(...scores);
+    const minScore = Math.min(...scores);
+    const playerWithMaxScore = sampleSize(courtPlayers.filter(player => player.rank === maxScore), 1)[0]
+    const playerWithMinScore = sampleSize(courtPlayers.filter(player => player.rank === minScore), 1)[0]
+    const redTeam = [playerWithMaxScore.name, playerWithMinScore.name]
+    const blueTeam = courtPlayerNames.filter(playerName => playerName !== playerWithMaxScore.name && playerName !== playerWithMinScore.name)
+    return {
+        ...court,
+        red: redTeam,
+        blue: blueTeam
+    }
+};
 
 export const generatePairMapsByCourts = (players: Player[], courts: Court[]) => {
     const initialPairMaps = players.reduce(
@@ -256,7 +340,38 @@ export const forcePlayerToRestByPlayedMaps = (players: Player[], courtCount: num
     const isPlayerExceed = players.length > maxPlayersCount
     if (isPlayerExceed) {
         const exceedNumber = players.length - maxPlayersCount
-        const playersForcedToRest = orderBy(Object.keys(playedMaps), [], ['desc']).reduce((acc: string[], key: string) => {
+        const orderedPlayedCounts = orderBy(Object.keys(playedMaps).map(Number), [], ['desc'])
+        const playersForcedToRest = orderedPlayedCounts.reduce((acc: string[], key: number) => {
+            const playersToRandomForceRest = playedMaps[key]
+            if (acc.length < exceedNumber) return [...acc, ...sampleSize(playersToRandomForceRest, exceedNumber - acc.length)]
+            return acc
+        }, [])
+        const playersToPlay = players.filter(player => !playersForcedToRest.includes(player.name))
+        return { playersToPlay, playersForcedToRest }
+    }
+    return { playersToPlay: players, playersForcedToRest: [] }
+}
+
+export const forcePlayerToRestByPlayedMapsV3 = (players: Player[], courtCount: number, playedMaps: { [x: string]: string[] }) => {
+    const MAX_PLAYER_PER_COURT = 4
+    const maxPlayersCount = courtCount * MAX_PLAYER_PER_COURT
+    const isPlayerExceed = players.length > maxPlayersCount;
+    const isPlayerNotEnough = players.length % 4 === 1;
+    if (isPlayerExceed) {
+        const exceedNumber = players.length - maxPlayersCount
+        const orderedPlayedCounts = orderBy(Object.keys(playedMaps).map(Number), [], ['desc'])
+        const playersForcedToRest = orderedPlayedCounts.reduce((acc: string[], key: number) => {
+            const playersToRandomForceRest = playedMaps[key]
+            if (acc.length < exceedNumber) return [...acc, ...sampleSize(playersToRandomForceRest, exceedNumber - acc.length)]
+            return acc
+        }, [])
+        const playersToPlay = players.filter(player => !playersForcedToRest.includes(player.name))
+        return { playersToPlay, playersForcedToRest }
+    }
+    if (isPlayerNotEnough) {
+        const exceedNumber = 1
+        const orderedPlayedCounts = orderBy(Object.keys(playedMaps).map(Number), [], ['desc'])
+        const playersForcedToRest = orderedPlayedCounts.reduce((acc: string[], key: number) => {
             const playersToRandomForceRest = playedMaps[key]
             if (acc.length < exceedNumber) return [...acc, ...sampleSize(playersToRandomForceRest, exceedNumber - acc.length)]
             return acc
@@ -341,4 +456,100 @@ export const getRoundAfterSwapPlayer = (round: Round, swapToCourtIndex: number, 
     }
     clonedRound.courts[swapToCourtIndex][swapToPlayerTeam][swapToPlayerIndex] = playerToSwapWith;
     return clonedRound;
+}
+
+export const getPlayersFromText = (text: string): IPlayer[] => {
+    const playerRegex = /^\d+\.( ?)+(.*)/
+    const rankRegex = /\((\d+)\)$/
+    const metadataSeparatorRegex = /-+\n/
+    const formattedPlayersInput = last(text.split(metadataSeparatorRegex)) || ''
+    const defaultRank = 5;
+    const players = formattedPlayersInput.split('\n')
+        .filter(line => line.match(playerRegex)?.[2])
+        .map(playerText => {
+            // const playerName = playerText.replace(playerRegex, '').replace(rankRegex, '').trim()
+            const playerName = playerText.match(playerRegex)?.[2].replace(rankRegex, '').trim()
+            const injectedRank = Number(playerText.match(rankRegex)?.[1])
+            const playerConfig = settings.playersConfig.find(p => p.name === playerName)
+            const rank = isNaN(injectedRank) ? playerConfig?.rank : injectedRank 
+            return {
+                name: playerName || '',
+                rank: rank || defaultRank,
+                isGod: !!playerConfig?.isGod,
+                isAlonable: false,
+            }
+        })
+    return players
+}
+
+export const createIndependentCourt = (): IndependentCourtV3 => {
+    return {
+        status: CourtStatus.NotStarted,
+        red: [],
+        blue: []
+    }
+}
+
+export const getPlayingCourts = (courts: IndependentCourtV3[]) => {
+    return courts.filter(court => court.status === CourtStatus.Playing)
+}
+
+export const convertNormalCourtsToIndependentCourts = (courts: Court[]): IndependentCourtV3[] => {
+    return courts.map(court => ({ ...court, status: CourtStatus.Playing }))
+}
+
+export const mergeCourtWithCourtHistory = (courts: IndependentCourtV3[], courtHistory: IndependentCourtV3[]) => [...courts, ...courtHistory]
+
+export const getPlayerRank = (players: IPlayer[], playerName: string) => players.find(_player => _player.name === playerName)?.rank || 0
+
+export const getCourtsWithSwappedPlayers = (firstPlayer: string, secondPlayer: string, courts: IndependentCourtV3[]): IndependentCourtV3[] => {
+    const isFirstPlayerPlaying = courts.find(court => court.status === CourtStatus.Playing && (court.red.includes(firstPlayer) || court.blue.includes(firstPlayer)))
+    const isSecondPlayerPlaying = courts.find(court => court.status === CourtStatus.Playing && (court.red.includes(secondPlayer) || court.blue.includes(secondPlayer)))
+
+    if (!isFirstPlayerPlaying && !isSecondPlayerPlaying) return courts
+    if (!isFirstPlayerPlaying && isSecondPlayerPlaying) {
+        return courts.map(court => {
+            if (court.red.includes(secondPlayer) || court.blue.includes(secondPlayer)) {
+                return {
+                    ...court,
+                    red: court.red.map(redPlayer => redPlayer === secondPlayer ? firstPlayer : redPlayer),
+                    blue: court.blue.map(bluePlayer => bluePlayer === secondPlayer ? firstPlayer : bluePlayer)
+                }
+            }
+            return court
+        })
+    }
+    if (isFirstPlayerPlaying && !isSecondPlayerPlaying) {
+        return courts.map(court => {
+            if (court.red.includes(firstPlayer) || court.blue.includes(firstPlayer)) {
+                return {
+                    ...court,
+                    red: court.red.map(redPlayer => redPlayer === firstPlayer ? secondPlayer : redPlayer),
+                    blue: court.blue.map(bluePlayer => bluePlayer === firstPlayer ? secondPlayer : bluePlayer)
+                }
+            }
+            return court
+        })
+    }
+    if (isFirstPlayerPlaying && isSecondPlayerPlaying) {
+        const isSameTeam = courts.find(court => (court.red.includes(firstPlayer) && court.red.includes(secondPlayer)) || (court.blue.includes(firstPlayer) && court.blue.includes(secondPlayer)))
+        if (isSameTeam) return courts
+
+        return courts.map(court => {
+            return {
+                ...court,
+                red: court.red.map(redPlayer => {
+                    if (redPlayer === firstPlayer) return secondPlayer
+                    if (redPlayer === secondPlayer) return firstPlayer
+                    return redPlayer
+                }),
+                blue: court.blue.map(bluePlayer => {
+                    if (bluePlayer === firstPlayer) return secondPlayer
+                    if (bluePlayer === secondPlayer) return firstPlayer
+                    return bluePlayer
+                })
+            }
+        })
+    }
+    return courts
 }

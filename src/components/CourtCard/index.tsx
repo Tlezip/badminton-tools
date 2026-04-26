@@ -10,6 +10,7 @@ interface IProps {
     handleSwapPlayer: (firstPlayer: string, secondPlayer: string) => void;
     handleAddPlayerToCourt: (team: 'red' | 'blue', playerName: string) => void;
     handleDeletePlayerFromCourt: (team: 'red' | 'blue', playerName: string) => void;
+    handleRemoveLastRound: (courtIndex: number) => void;
     courtName: string;
     courtInfo?: IndependentCourt;
     players: Player[];
@@ -21,6 +22,7 @@ const CourtCard: React.FC<IProps> = ({
     handleSwapPlayer,
     handleAddPlayerToCourt,
     handleDeletePlayerFromCourt,
+    handleRemoveLastRound,
     courtName,
     courtInfo,
     players,
@@ -56,6 +58,11 @@ const CourtCard: React.FC<IProps> = ({
         if (!isEditting) return <p className="court-card__player-info">{playerName}</p>
         const otherPlayers = players.filter(player => player.name !== playerName);
 
+        const handleClickPlayer = (playerName: string, player: Player) => {
+            if (playerName) handleSwapPlayer(playerName, player.name)
+            else handleAddPlayerToCourt(team, player.name)
+        }
+
         return (
             <Dropdown>
                 <Dropdown.Toggle variant='success'>
@@ -66,7 +73,7 @@ const CourtCard: React.FC<IProps> = ({
                     {
                         otherPlayers.map(player => (
                             <Dropdown.Item
-                                onClick={() => playerName ? handleSwapPlayer(playerName, player.name) : handleAddPlayerToCourt(team, player.name)}
+                                onClick={() => handleClickPlayer(playerName, player)}
                                 key={player.name}
                             >
                                 {player.name}
@@ -78,20 +85,26 @@ const CourtCard: React.FC<IProps> = ({
         )
     }
 
+    const getPlayerScore = (playerName: string) => players.find(player => player.name === playerName)?.rank || 0
+
+    const renderTotalScore = (playerName1: string, playerName2: string) => getPlayerScore(playerName1) + getPlayerScore(playerName2);
+
     return (
         <Card className="court-container">
             <Card.Header>{`Court ${courtName} (${courtStatusText})`}</Card.Header>
             <Card.Body>
-                {courtInfo && (
+                {courtInfo && courtInfo.status === CourtStatus.Playing && (
                     <>
                         <div className="court-card__player-info-container">
                             {renderPlayer(courtInfo.red[0], 'red')}
                             {renderPlayer(courtInfo.red[1], 'red')}
+                            {`(${renderTotalScore(courtInfo.red[0], courtInfo.red[1])})`}
                         </div>
                         <p className="court-card__player-info">vs</p>
                         <div className="court-card__player-info-container">
                             {renderPlayer(courtInfo.blue[0], 'blue')}
                             {renderPlayer(courtInfo.blue[1], 'blue')}
+                            {`(${renderTotalScore(courtInfo.blue[0], courtInfo.blue[1])})`}
                         </div>
                     </>
                 )}
@@ -123,6 +136,14 @@ const CourtCard: React.FC<IProps> = ({
                     </div>
                 </div>
             </Card.Body>
+            <Card.Footer>
+                <Button
+                    onClick={() => handleRemoveLastRound(courtInfo?.courtIndex || 0)}
+                    variant="danger"
+                >
+                    Remove
+                </Button>
+            </Card.Footer>
         </Card>
     )
 }

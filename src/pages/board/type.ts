@@ -39,3 +39,7 @@ export interface IndependentCourt extends Court {
     courtIndex: number;
     status: CourtStatus;
 }
+
+export interface IndependentCourtV3 extends Court {
+    status: CourtStatus;
+}

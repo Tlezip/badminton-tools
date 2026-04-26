@@ -1,0 +1,41 @@
+.board-v3 {
+    /* width: 100vw;
+    height: 100vh; */
+    background: #F9FAFB;
+}
+
+.board-v3__content-container {
+    margin: 16px 0;
+    display: flex;
+    padding: 0 4vw;
+    /* flex-direction: column; */
+}
+
+.board-v3__left-content-container {
+    flex: 1 0 35%;
+    margin-right: 8px;
+}
+
+.board-v3__right-content-container {
+    flex: 1 0 65%;
+    margin-left: 8px;
+}
+
+.board-v3__player-management-container {
+    margin-bottom: 16px;
+}
+
+@media (max-width: 767px) {
+    .board-v3__content-container {
+        flex-direction: column;
+    }
+
+    .board-v3__left-content-container {
+        margin-right: 0;
+        margin-bottom: 16px;
+    }
+
+    .board-v3__right-content-container {
+        margin-left: 0;
+    }
+}

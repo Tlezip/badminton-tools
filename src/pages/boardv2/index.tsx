@@ -7,7 +7,7 @@ import CourtCard from '../../components/CourtCard';
 import PlayerSelection from '../../components/PlayerSelection';
 import CourtSelection from '../../components/CourtSelection';
 import { BasePlayer,  CourtInfo, Team } from '../../types';
-import { generateBalanceCourts, generateNormalCourts, convertCourtsToPlayedMaps, forcePlayerToRestByPlayedMaps, generatePairMapsByCourts } from '../board/helper'
+import { generateBalanceCourts, generateNormalCourts, convertCourtsToPlayedMaps, forcePlayerToRestByPlayedMaps, generatePairMapsByCourts, shouldBalanceCourt, balanceCourt } from '../board/helper'
 import { IndependentCourt, CourtStatus } from '../board/type';
 
 import './index.css'
@@ -88,6 +88,7 @@ const BoardV2 = () => {
         const playedMaps = convertCourtsToPlayedMaps(playersWantToPlay, courts)
         const courtToGenerate = courtIndexes.length
         const { playersToPlay, playersForcedToRest = [] } = forcePlayerToRestByPlayedMaps(playersWantToPlay, courtToGenerate, playedMaps)
+        console.log({ playersToPlay, playersWantToPlay, playedMaps })
         if (isBalanceMode) {
             // const balanceCourts = generateBalanceCourts(playersToPlay, pairMaps)
             // const court = shuffle(balanceCourts)[0]
@@ -106,8 +107,12 @@ const BoardV2 = () => {
                 return isTeamFull && teamAbleToPlay
             })
             const generatedCourts = generateNormalCourts(playersToPlay, pairMaps, filteredTeams);
+            const balancedCourts = generatedCourts.map(court => {
+                if (shouldBalanceCourt(court, players)) return balanceCourt(court, players)
+                    return court
+            })
             setCourts((prevCourts: IndependentCourt[]) => {
-                const _generatedCourts = generatedCourts.map((generatedCourt, index) => ({
+                const _generatedCourts = balancedCourts.map((generatedCourt, index) => ({
                     ...generatedCourt,
                     courtIndex: courtIndexes[index],
                     status: CourtStatus.Playing
@@ -122,6 +127,31 @@ const BoardV2 = () => {
         const playingCourtsIndexes = playingCourts.map(playingCourt => playingCourt.courtIndex)
         const availableCourtIndexes = courtsInfo.map((_, courtIndex) => courtIndex).filter(courtIndex => !playingCourtsIndexes.includes(courtIndex))
         generateCourt(availableCourtIndexes)
+    }
+
+    const generateAllBalanceCourts = () => {
+        const playersWantToPlay = players.filter(player => ![...restPlayer].includes(player.name))
+        const playedMaps = convertCourtsToPlayedMaps(playersWantToPlay, courts)
+        // courtsInfo.map(courtInfo => courtInfo.courtIndex)
+        const courtIndexes = courtsInfo.map((_, courtIndex) => courtIndex)
+        const courtToGenerate = courtsInfo.length
+        // const courtToGenerate = courtIndexes.length
+        const { playersToPlay, playersForcedToRest = [] } = forcePlayerToRestByPlayedMaps(playersWantToPlay, courtToGenerate, playedMaps)
+
+        const balanceCourts = generateBalanceCourts(playersToPlay, pairMaps)
+        const generatedCourts = shuffle(balanceCourts)
+        const balancedCourts = generatedCourts.map(court => {
+            if (shouldBalanceCourt(court, players)) return balanceCourt(court, players)
+                return court
+        })
+        setCourts((prevCourts: IndependentCourt[]) => {
+            const _generatedCourts = balancedCourts.map((generatedCourt, index) => ({
+                ...generatedCourt,
+                courtIndex: courtIndexes[index],
+                status: CourtStatus.Playing
+            }))
+            return [...prevCourts, ..._generatedCourts]
+        })
     }
 
     const getCurrentCourtIndex = (courtIndex: number) => {
@@ -149,8 +179,10 @@ const BoardV2 = () => {
         if (isBothPlayerPlaying) {
             const firstPlayerTeam = courts[firstPlayerCourtIndex].blue.includes(firstPlayer) ? 'blue' : 'red'
             const secondPlayerTeam = courts[secondPlayerCourtIndex].blue.includes(secondPlayer) ? 'blue' : 'red'
-            if (firstPlayerTeam === secondPlayerTeam) return
-            if (firstPlayerCourtIndex === secondPlayerCourtIndex) {
+            const isSameCourt = firstPlayerCourtIndex === secondPlayerCourtIndex;
+            const isSameTeam = firstPlayerTeam === secondPlayerTeam;
+            if (isSameCourt && isSameTeam) return
+            if (isSameCourt) {
                 setCourts((prevCourts) => {
                     prevCourts[firstPlayerCourtIndex][firstPlayerTeam] = prevCourts[firstPlayerCourtIndex][firstPlayerTeam].map(playerName => playerName === firstPlayer ? secondPlayer : playerName)
                     prevCourts[secondPlayerCourtIndex][secondPlayerTeam] = prevCourts[secondPlayerCourtIndex][secondPlayerTeam].map(playerName => playerName === secondPlayer ? firstPlayer : playerName)
@@ -186,13 +218,13 @@ const BoardV2 = () => {
         const playerCourtIndex = courts.findIndex(court => court.status === CourtStatus.Playing && [...court.blue, ...court.red].includes(playerName))
         const isPlayerIdle = playerCourtIndex === -1
         setCourts((prevCourts) => {
-            const _courtIndex = prevCourts.findIndex(court => court.courtIndex === courtIndex)
-            prevCourts[_courtIndex][team] = prevCourts[_courtIndex][team].concat(playerName)
-
             if (!isPlayerIdle) {
                 prevCourts[playerCourtIndex].red = prevCourts[playerCourtIndex].red.filter(player => player !== playerName)
                 prevCourts[playerCourtIndex].blue = prevCourts[playerCourtIndex].blue.filter(player => player !== playerName)
             }
+
+            const _courtIndex = prevCourts.findIndex(court => court.courtIndex === courtIndex && court.status === CourtStatus.Playing)
+            prevCourts[_courtIndex][team] = prevCourts[_courtIndex][team].concat(playerName)
             return [...prevCourts]
         })
     }
@@ -204,10 +236,29 @@ const BoardV2 = () => {
             return [...prevCourts]
         })
     }
+    
+    const handleRemoveLastRound = (courtIndex: number) => {
+        setCourts((prevCourts) => {
+            const newCourts = prevCourts.filter(court => !(court.courtIndex === courtIndex && court.status === CourtStatus.Playing))
+            return [...newCourts]
+        })
+    }
 
     const toggleMode = () => {
         const newMode = !isBalanceMode
         setIsBalanceMode(newMode)
+    }
+
+    const removeAllPlayingCourts = () => {
+        const playingCourts = courts.filter(court => court.status === CourtStatus.Playing)
+        const playingCourtsIndexes = playingCourts.map(playingCourt => playingCourt.courtIndex)
+        playingCourtsIndexes.map(handleRemoveLastRound)
+    }
+
+    const finishAllPlayingCourts = () => {
+        const playingCourts = courts.filter(court => court.status === CourtStatus.Playing)
+        const playingCourtsIndexes = playingCourts.map(playingCourt => playingCourt.courtIndex)
+        playingCourtsIndexes.map(toggleCourtStatus)
     }
 
     const playingCourts = courts.filter(court => court.status === CourtStatus.Playing);
@@ -240,7 +291,14 @@ const BoardV2 = () => {
                 <div className="idle-players-container">
                     {`Idle Players: ${idlePlayers.map(player => player.name).join(', ')}`}
                 </div>
-                <Button onClick={generateAllAvailableCourts}>Generate All Available Courts</Button>
+                <div>
+                    <Button onClick={generateAllAvailableCourts}>Generate All Available Courts</Button>
+                    <Button onClick={generateAllBalanceCourts} variant='success' disabled={playingCourts.length > 0}>Generate All Balanced Courts</Button>
+                </div>
+                <div>
+                    <Button onClick={removeAllPlayingCourts} variant='danger'>Remove All Playing Courts</Button>
+                    <Button onClick={finishAllPlayingCourts} variant='success'>Finish All Playing Courts</Button>
+                </div>
                 <div className="courts-container">
                     {
                         courtsInfo.map((courtInfo, courtIndex) => {
@@ -253,6 +311,7 @@ const BoardV2 = () => {
                                     handleSwapPlayer={handleSwapPlayer}
                                     handleAddPlayerToCourt={(team, playerName) => handleAddPlayerToCourt(courtIndex, team, playerName)}
                                     handleDeletePlayerFromCourt={(team, playerName) => handleDeletePlayerFromCourt(courtIndex, team, playerName)}
+                                    handleRemoveLastRound={handleRemoveLastRound}
                                     courtName={courtInfo.name}
                                     key={`${courtInfo.name}-${lastCourtInfo?.status}`}
                                     courtInfo={lastCourtInfo}
@@ -262,7 +321,7 @@ const BoardV2 = () => {
                     }
                 </div>
                 <div className="histories-container">
-                    <HistoriesCard courts={courts} courtsInfo={courtsInfo} />
+                    <HistoriesCard courts={courts} courtsInfo={courtsInfo} players={players} />
                 </div>
             </div>
         </div>
